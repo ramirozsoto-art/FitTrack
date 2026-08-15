@@ -39,3 +39,63 @@ export interface Exercise {
   muscle_group: string | null;
   equipment: string | null;
 }
+
+// Tipos de las tablas de Fase 2 (rutinas y entrenamientos). Las tablas están
+// vacías en Supabase, así que el esquema de columnas es una convención
+// asumida (snake_case, misma lógica que "profiles"/"exercises"). Ajustar si
+// el esquema real difiere.
+
+export interface Routine {
+  id: string;
+  user_id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RoutineExercise {
+  id: string;
+  routine_id: string;
+  exercise_id: string;
+  sets: number;
+  reps: number;
+  rest_seconds: number;
+  order_index: number;
+  created_at: string;
+}
+
+// RoutineExercise con el ejercicio embebido (join), para mostrar el nombre
+// sin hacer una consulta aparte por cada fila.
+export interface RoutineExerciseWithExercise extends RoutineExercise {
+  exercise: Exercise;
+}
+
+// Fila "en edición" dentro de la pantalla de Crear Rutina, antes de guardar
+// (todavía no tiene id propio ni routine_id).
+export interface DraftRoutineExercise {
+  exercise: Exercise;
+  sets: number;
+  reps: number;
+  rest_seconds: number;
+}
+
+export interface Workout {
+  id: string;
+  user_id: string;
+  routine_id: string | null;
+  started_at: string;
+  finished_at: string | null;
+  created_at: string;
+}
+
+// No se usa en la UI de Fase 2 (el registro de sets en vivo es Fase 3), se
+// tipa por completitud del esquema.
+export interface WorkoutSet {
+  id: string;
+  workout_id: string;
+  exercise_id: string;
+  set_number: number;
+  reps: number | null;
+  weight_kg: number | null;
+  created_at: string;
+}

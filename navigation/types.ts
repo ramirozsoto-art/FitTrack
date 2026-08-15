@@ -11,3 +11,10 @@ export type MainTabParamList = {
   Ejercicios: undefined;
   Perfil: undefined;
 };
+
+// Stack anidado dentro del tab "Entrenamiento", para poder navegar a
+// Crear Rutina con flecha atrás.
+export type EntrenamientoStackParamList = {
+  EntrenamientoHome: undefined;
+  CrearRutina: undefined;
+};

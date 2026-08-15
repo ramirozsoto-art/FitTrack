@@ -1,32 +1,102 @@
-import { Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { Alert, Dimensions, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../context/AuthContext';
+import { fetchUserRoutines, fetchWeeklyWorkouts } from '../../lib/routines';
 import { colors, fontFamily, radius, spacing } from '../../theme';
+import type { Routine, Workout } from '../../types/database';
 
 const DAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 const TODAY_INDEX = (new Date().getDay() + 6) % 7; // lunes = 0
 
-// Datos de actividad hardcodeados: se reemplazan por datos reales en Fase 2.
-const ACTIVITY_DATA = {
-  labels: DAYS,
-  datasets: [{ data: [20, 45, 28, 60, 35, 50, 15] }],
-};
-
 const screenWidth = Dimensions.get('window').width;
 
+// Lunes 00:00 de la semana actual, usado como corte para el calendario y el
+// gráfico semanal.
+function getWeekStart(): Date {
+  const now = new Date();
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - TODAY_INDEX);
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+
+// Índice de lunes=0 a domingo=6 a partir de una fecha ISO.
+function dayIndexFromISODate(iso: string): number {
+  return (new Date(iso).getDay() + 6) % 7;
+}
+
 // Dashboard (tab "Inicio"): saludo, rutina de hoy, calendario semanal visual
-// y gráfico de actividad. Todo con datos de ejemplo hasta la Fase 2.
+// y gráfico de actividad, todo con datos reales de Supabase.
 export default function DashboardScreen() {
   const { profile, session } = useAuth();
   const firstName = profile?.full_name?.split(' ')[0] ?? session?.user?.email?.split('@')[0] ?? 'atleta';
 
+  const [routines, setRoutines] = useState<Routine[]>([]);
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadDashboard = useCallback(async () => {
+    if (!session?.user) return;
+    try {
+      const [routinesData, workoutsData] = await Promise.all([
+        fetchUserRoutines(session.user.id),
+        fetchWeeklyWorkouts(session.user.id, getWeekStart()),
+      ]);
+      setRoutines(routinesData);
+      setWorkouts(workoutsData);
+    } catch {
+      // Si falla, se mantienen los últimos datos cargados; se puede reintentar con pull-to-refresh.
+    }
+  }, [session]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadDashboard();
+    }, [loadDashboard])
+  );
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadDashboard();
+    setRefreshing(false);
+  };
+
+  const handleTrain = () => {
+    Alert.alert('Próximamente', 'El registro de entrenamientos activos llega en la próxima fase.');
+  };
+
+  const latestRoutine = routines[0] ?? null;
+
+  const trainedDayIndices = useMemo(() => {
+    return new Set(workouts.map((w) => dayIndexFromISODate(w.started_at)));
+  }, [workouts]);
+
+  const dailyCounts = useMemo(() => {
+    const counts = [0, 0, 0, 0, 0, 0, 0];
+    workouts.forEach((w) => {
+      counts[dayIndexFromISODate(w.started_at)] += 1;
+    });
+    return counts;
+  }, [workouts]);
+
+  const activityData = useMemo(
+    () => ({ labels: DAYS, datasets: [{ data: dailyCounts }] }),
+    [dailyCounts]
+  );
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
+        }
+      >
         <Text style={styles.greeting}>Hola {firstName} 👋</Text>
 
         <Card style={styles.todayCard}>
@@ -36,45 +106,67 @@ export default function DashboardScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.todayLabel}>Rutina de hoy</Text>
-              <Text style={styles.todayTitle}>Tren superior</Text>
+              <Text style={styles.todayTitle}>{latestRoutine?.name ?? 'Sin rutinas todavía'}</Text>
             </View>
           </View>
-          <Button title="Entrenar" onPress={() => {}} style={styles.trainButton} />
+          {latestRoutine ? (
+            <Button title="Entrenar" onPress={handleTrain} style={styles.trainButton} />
+          ) : (
+            <Text style={styles.todayEmptyText}>
+              Creá tu primera rutina desde el tab Entrenamiento para verla acá.
+            </Text>
+          )}
         </Card>
 
         <Text style={styles.sectionTitle}>Esta semana</Text>
         <Card style={styles.weekCard}>
-          {DAYS.map((day, index) => (
-            <View key={index} style={styles.dayItem}>
-              <View style={[styles.dayCircle, index === TODAY_INDEX && styles.dayCircleActive]}>
-                <Text style={[styles.dayLabel, index === TODAY_INDEX && styles.dayLabelActive]}>
-                  {day}
-                </Text>
+          {DAYS.map((day, index) => {
+            const trained = trainedDayIndices.has(index);
+            return (
+              <View key={index} style={styles.dayItem}>
+                <View style={[styles.dayCircle, trained && styles.dayCircleActive]}>
+                  {trained ? (
+                    <Ionicons name="checkmark" size={16} color={colors.white} />
+                  ) : (
+                    <Text style={[styles.dayLabel, index === TODAY_INDEX && styles.dayLabelToday]}>
+                      {day}
+                    </Text>
+                  )}
+                </View>
               </View>
-            </View>
-          ))}
+            );
+          })}
         </Card>
 
         <Text style={styles.sectionTitle}>Actividad</Text>
-        <Card style={styles.chartCard}>
-          <LineChart
-            data={ACTIVITY_DATA}
-            width={screenWidth - spacing.md * 2 - spacing.sm * 2}
-            height={180}
-            withInnerLines={false}
-            withOuterLines={false}
-            chartConfig={{
-              backgroundGradientFrom: colors.surface,
-              backgroundGradientTo: colors.surface,
-              decimalPlaces: 0,
-              color: (opacity = 1) => `rgba(234, 88, 12, ${opacity})`,
-              labelColor: () => colors.textSecondary,
-              propsForDots: { r: '4', strokeWidth: '2', stroke: colors.primary },
-            }}
-            bezier
-            style={styles.chart}
-          />
-        </Card>
+        {workouts.length > 0 ? (
+          <Card style={styles.chartCard}>
+            <LineChart
+              data={activityData}
+              width={screenWidth - spacing.md * 2 - spacing.sm * 2}
+              height={180}
+              withInnerLines={false}
+              withOuterLines={false}
+              chartConfig={{
+                backgroundGradientFrom: colors.surface,
+                backgroundGradientTo: colors.surface,
+                decimalPlaces: 0,
+                color: (opacity = 1) => `rgba(234, 88, 12, ${opacity})`,
+                labelColor: () => colors.textSecondary,
+                propsForDots: { r: '4', strokeWidth: '2', stroke: colors.primary },
+              }}
+              bezier
+              style={styles.chart}
+            />
+          </Card>
+        ) : (
+          <Card style={styles.chartEmptyCard}>
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="stats-chart-outline" size={24} color={colors.primary} />
+            </View>
+            <Text style={styles.chartEmptyText}>Todavía no registraste entrenamientos esta semana.</Text>
+          </Card>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -123,6 +215,12 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semiBold,
     color: colors.textPrimary,
   },
+  todayEmptyText: {
+    fontSize: 13,
+    fontFamily: fontFamily.regular,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
   trainButton: {
     height: 48,
   },
@@ -146,6 +244,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: colors.background,
   },
   dayCircleActive: {
     backgroundColor: colors.primary,
@@ -155,8 +254,8 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
     color: colors.textSecondary,
   },
-  dayLabelActive: {
-    color: colors.white,
+  dayLabelToday: {
+    color: colors.primary,
     fontFamily: fontFamily.semiBold,
   },
   chartCard: {
@@ -165,5 +264,25 @@ const styles = StyleSheet.create({
   },
   chart: {
     borderRadius: radius.md,
+  },
+  chartEmptyCard: {
+    alignItems: 'center',
+    paddingVertical: spacing.lg,
+  },
+  emptyIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
+  chartEmptyText: {
+    fontSize: 14,
+    fontFamily: fontFamily.regular,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: spacing.md,
   },
 });

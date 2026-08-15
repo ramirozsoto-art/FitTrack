@@ -2,7 +2,7 @@ import { StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import DashboardScreen from '../screens/main/DashboardScreen';
-import EntrenamientoScreen from '../screens/main/EntrenamientoScreen';
+import EntrenamientoStackNavigator from './EntrenamientoStackNavigator';
 import EjerciciosScreen from '../screens/main/EjerciciosScreen';
 import PerfilScreen from '../screens/main/PerfilScreen';
 import { colors, fontFamily } from '../theme';
@@ -44,7 +44,7 @@ export default function MainTabNavigator() {
       })}
     >
       <Tab.Screen name="Inicio" component={DashboardScreen} />
-      <Tab.Screen name="Entrenamiento" component={EntrenamientoScreen} />
+      <Tab.Screen name="Entrenamiento" component={EntrenamientoStackNavigator} />
       <Tab.Screen name="Ejercicios" component={EjerciciosScreen} />
       <Tab.Screen name="Perfil" component={PerfilScreen} />
     </Tab.Navigator>

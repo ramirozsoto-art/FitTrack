@@ -1,22 +1,100 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { Alert, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
+import ScreenHeader from '../../components/ui/ScreenHeader';
+import { useAuth } from '../../context/AuthContext';
+import { fetchUserRoutines } from '../../lib/routines';
 import { colors, fontFamily, spacing } from '../../theme';
+import type { Routine } from '../../types/database';
+import type { EntrenamientoStackParamList } from '../../navigation/types';
 
-// Placeholder de la Fase 2 (entrenamiento activo, rutinas). Se implementa
-// en la siguiente fase; por ahora solo muestra un estado "próximamente".
-export default function EntrenamientoScreen() {
+type Props = NativeStackScreenProps<EntrenamientoStackParamList, 'EntrenamientoHome'>;
+
+// Pantalla raíz del tab "Entrenamiento": empezar entrenamiento (placeholder,
+// la lógica en vivo es Fase 3), crear rutina y la lista de rutinas guardadas.
+export default function EntrenamientoScreen({ navigation }: Props) {
+  const { session } = useAuth();
+  const [routines, setRoutines] = useState<Routine[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadRoutines = useCallback(async () => {
+    if (!session?.user) return;
+    try {
+      const data = await fetchUserRoutines(session.user.id);
+      setRoutines(data);
+    } catch {
+      // Si falla, la lista queda como estaba; el usuario puede reintentar con pull-to-refresh.
+    }
+  }, [session]);
+
+  // Refresca cada vez que la pantalla vuelve a foco (ej: al volver de Crear Rutina).
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      loadRoutines().finally(() => setLoading(false));
+    }, [loadRoutines])
+  );
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadRoutines();
+    setRefreshing(false);
+  };
+
+  const handlePlaceholder = () => {
+    Alert.alert('Próximamente', 'El registro de entrenamientos activos llega en la próxima fase.');
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.container}>
-        <View style={styles.iconWrap}>
-          <Ionicons name="barbell-outline" size={32} color={colors.primary} />
-        </View>
-        <Text style={styles.title}>Próximamente</Text>
-        <Text style={styles.subtitle}>
-          El registro de entrenamientos activos llega en la próxima fase.
-        </Text>
-      </View>
+      <ScreenHeader title="Entrenamiento" />
+      <FlatList
+        data={routines}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
+        }
+        ListHeaderComponent={
+          <View>
+            <Button title="Empezar nuevo Entrenamiento" onPress={handlePlaceholder} style={styles.startButton} />
+
+            <Text style={styles.sectionTitle}>Rutinas</Text>
+            <Button
+              title="+ Crear nueva Rutina"
+              variant="secondary"
+              onPress={() => navigation.navigate('CrearRutina')}
+              style={styles.createButton}
+            />
+
+            <Text style={styles.subsectionTitle}>Mis Rutinas</Text>
+          </View>
+        }
+        ListEmptyComponent={
+          !loading ? (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconWrap}>
+                <Ionicons name="clipboard-outline" size={28} color={colors.primary} />
+              </View>
+              <Text style={styles.emptyText}>Aún no tenés rutinas. Creá tu primera rutina para empezar.</Text>
+            </View>
+          ) : null
+        }
+        renderItem={({ item }) => (
+          <Card style={styles.routineCard}>
+            <Text style={styles.routineName} numberOfLines={1}>
+              {item.name}
+            </Text>
+            <Button title="Empezar Rutina" onPress={handlePlaceholder} style={styles.routineButton} />
+          </Card>
+        )}
+      />
     </SafeAreaView>
   );
 }
@@ -26,32 +104,59 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
+  listContent: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
   },
-  iconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  startButton: {
+    marginBottom: spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontFamily: fontFamily.semiBold,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  createButton: {
+    marginBottom: spacing.md,
+  },
+  subsectionTitle: {
+    fontSize: 15,
+    fontFamily: fontFamily.medium,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  routineCard: {
+    marginBottom: spacing.xs,
+  },
+  routineName: {
+    fontSize: 16,
+    fontFamily: fontFamily.semiBold,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  routineButton: {
+    height: 44,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing.lg,
+  },
+  emptyIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
-  title: {
-    fontSize: 20,
-    fontFamily: fontFamily.semiBold,
-    color: colors.textPrimary,
-    marginBottom: 6,
-  },
-  subtitle: {
+  emptyText: {
     fontSize: 14,
     fontFamily: fontFamily.regular,
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 20,
+    paddingHorizontal: spacing.lg,
   },
 });

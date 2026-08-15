@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import type { Session } from '@supabase/supabase-js';
@@ -33,15 +33,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
 
+  // Id de la última solicitud de perfil "vigente". Como fetchProfile se puede
+  // disparar varias veces en paralelo (getSession + onAuthStateChange, o un
+  // TOKEN_REFRESHED mientras el usuario completa el onboarding), sin esto una
+  // respuesta vieja puede resolver tarde y pisar el perfil recién guardado
+  // (ej: rebotar al onboarding después de haberlo completado). Cada llamada
+  // a fetchProfile toma su propio id y se descarta si dejó de ser la vigente;
+  // saveOnboardingData también invalida las llamadas en vuelo al guardar.
+  const requestIdRef = useRef(0);
+
   // Busca el perfil del usuario. Si no existe (primer login), lo crea vacío
   // para que el flujo pase a la pantalla de Metabolismo Basal.
   const fetchProfile = useCallback(async (userId: string, email: string | null) => {
+    const myRequestId = ++requestIdRef.current;
     setProfileLoading(true);
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .maybeSingle();
+
+    if (requestIdRef.current !== myRequestId) return; // hay una solicitud más nueva, descartar
 
     if (data) {
       setProfile(data as Profile);
@@ -51,6 +63,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .upsert({ id: userId, email, onboarding_completed: false })
         .select('*')
         .single();
+
+      if (requestIdRef.current !== myRequestId) return; // idem, tras el segundo await
       setProfile((created as Profile) ?? null);
     }
     setProfileLoading(false);
@@ -65,12 +79,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, current) => {
+    // Solo refetcheamos el perfil en eventos que realmente pueden cambiarlo o
+    // representan un login nuevo. TOKEN_REFRESHED ocurre periódicamente en
+    // background y no debería disparar una nueva consulta.
+    const RELEVANT_EVENTS = new Set(['INITIAL_SESSION', 'SIGNED_IN', 'USER_UPDATED']);
+
+    const { data: listener } = supabase.auth.onAuthStateChange((event, current) => {
       setSession(current);
-      if (current?.user) {
-        fetchProfile(current.user.id, current.user.email ?? null);
-      } else {
+      if (!current?.user) {
         setProfile(null);
+        return;
+      }
+      if (RELEVANT_EVENTS.has(event)) {
+        fetchProfile(current.user.id, current.user.email ?? null);
       }
     });
 
@@ -89,6 +110,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = useCallback(async (): Promise<AuthResult> => {
     const redirectTo = Linking.createURL('auth/callback');
+    if (__DEV__) {
+      // Copiar esta URL exacta a Supabase Dashboard > Authentication > URL
+      // Configuration > Redirect URLs (usar un wildcard tipo exp://*/--/auth/callback
+      // en desarrollo, ya que cambia con la IP/puerto de Expo Go).
+      console.log('[OAuth] redirectTo:', redirectTo);
+    }
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -98,13 +125,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: error?.message ?? 'No se pudo iniciar sesión con Google' };
     }
 
-    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-    if (result.type === 'success' && result.url) {
-      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(result.url);
-      if (exchangeError) return { error: exchangeError.message };
+    // Red de seguridad: en algunos dispositivos Android la promesa de
+    // openAuthSessionAsync no se resuelve aunque el deep link sí vuelva a la
+    // app. Escuchamos el evento de Linking en paralelo y usamos un flag para
+    // no intercambiar el mismo código PKCE dos veces (es de un solo uso).
+    let exchanged = false;
+    const exchangeOnce = async (url: string): Promise<AuthResult> => {
+      if (exchanged) return { error: null };
+      exchanged = true;
+      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(url);
+      return { error: exchangeError?.message ?? null };
+    };
+
+    let linkingResult: AuthResult | null = null;
+    const linkingSub = Linking.addEventListener('url', ({ url }) => {
+      if (url.startsWith(redirectTo)) {
+        exchangeOnce(url).then((res) => {
+          linkingResult = res;
+        });
+      }
+    });
+
+    try {
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+      if (__DEV__ && result.type !== 'success') {
+        console.log('[OAuth] openAuthSessionAsync result:', result.type);
+      }
+      if (result.type === 'success' && result.url) {
+        return await exchangeOnce(result.url);
+      }
+      // Si el usuario cancela (result.type === 'cancel'/'dismiss') no lo tratamos
+      // como error, salvo que el listener de Linking ya haya resuelto el login.
+      return linkingResult ?? { error: null };
+    } finally {
+      linkingSub.remove();
     }
-    // Si el usuario cancela (result.type === 'cancel'/'dismiss') no lo tratamos como error.
-    return { error: null };
   }, []);
 
   const signOut = useCallback(async () => {
@@ -120,7 +175,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('id', session.user.id)
         .select('*')
         .single();
-      if (!error) setProfile((updated as Profile) ?? null);
+      if (!error) {
+        requestIdRef.current++; // invalida cualquier fetchProfile en vuelo (no debe pisar este resultado)
+        setProfile((updated as Profile) ?? null);
+      }
       return { error: error?.message ?? null };
     },
     [session]
