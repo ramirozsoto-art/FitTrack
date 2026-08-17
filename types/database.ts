@@ -31,13 +31,15 @@ export interface OnboardingData {
   goal: Goal;
 }
 
-// Fila de la tabla "exercises". Solo se usan los campos mostrados en el
-// listado de Fase 1; ajustar si el esquema real difiere.
+// Fila de la tabla "exercises". created_by/is_default se usan en Fase 4
+// para distinguir los ejercicios precargados de los que crea cada usuario.
 export interface Exercise {
   id: string;
   name: string;
   muscle_group: string | null;
   equipment: string | null;
+  created_by: string | null;
+  is_default: boolean;
 }
 
 // Tipos de las tablas de Fase 2 (rutinas y entrenamientos). Las tablas están

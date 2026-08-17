@@ -1,4 +1,5 @@
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -20,7 +21,14 @@ const GOAL_LABELS: Record<string, string> = {
 // Pantalla de perfil: datos de metabolismo basal, TDEE estimado, accesos a
 // editar perfil / historial / estadísticas, y botón para cerrar sesión.
 export default function PerfilScreen({ navigation }: Props) {
-  const { session, profile, signOut } = useAuth();
+  const { session, profile, signOut, refreshProfile } = useAuth();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refreshProfile();
+    setRefreshing(false);
+  };
 
   const handleSignOut = () => {
     Alert.alert('Cerrar sesión', '¿Seguro que querés cerrar sesión?', [
@@ -65,7 +73,12 @@ export default function PerfilScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
+        }
+      >
         <View style={styles.titleRow}>
           <Text style={styles.title}>Perfil</Text>
           <Button

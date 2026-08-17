@@ -119,12 +119,14 @@ export async function deleteRoutine(routineId: string): Promise<void> {
 }
 
 // Entrenamientos del usuario desde weekStart (inclusive) hasta hoy, usados
-// para el calendario semanal y el gráfico de actividad del Dashboard.
+// para el calendario semanal y el gráfico de actividad del Dashboard. Solo
+// "completed": uno cancelado o abandonado a medias no cuenta como día entrenado.
 export async function fetchWeeklyWorkouts(userId: string, weekStart: Date): Promise<Workout[]> {
   const { data, error } = await supabase
     .from('workouts')
     .select('*')
     .eq('user_id', userId)
+    .eq('status', 'completed')
     .gte('started_at', weekStart.toISOString())
     .order('started_at', { ascending: true });
 

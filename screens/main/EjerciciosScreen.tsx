@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import TextField from '../../components/ui/TextField';
 import { fetchExercises } from '../../lib/exercises';
@@ -37,23 +39,34 @@ function FilterChip({
 export default function EjerciciosScreen({ navigation }: Props) {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [muscleGroupFilter, setMuscleGroupFilter] = useState(ALL_FILTER);
   const [equipmentFilter, setEquipmentFilter] = useState(ALL_FILTER);
 
-  useEffect(() => {
-    let active = true;
-    fetchExercises()
-      .then((data) => {
-        if (active) setExercises(data);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
+  const loadExercises = useCallback(async () => {
+    try {
+      const data = await fetchExercises();
+      setExercises(data);
+    } catch {
+      // Si falla, la lista queda como estaba; se puede reintentar con pull-to-refresh.
+    }
   }, []);
+
+  // useFocusEffect (no useEffect) para que la lista se refresque sola al
+  // volver de Crear Ejercicio y aparezca el que se acaba de crear.
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      loadExercises().finally(() => setLoading(false));
+    }, [loadExercises])
+  );
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadExercises();
+    setRefreshing(false);
+  };
 
   const muscleGroups = useMemo(() => {
     const values = new Set(exercises.map((e) => e.muscle_group).filter((v): v is string => !!v));
@@ -78,7 +91,15 @@ export default function EjerciciosScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Ejercicios</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Ejercicios</Text>
+          <Button
+            title="+ Crear"
+            variant="secondary"
+            onPress={() => navigation.navigate('CrearEjercicio')}
+            style={styles.createButton}
+          />
+        </View>
         <TextField
           placeholder="Buscar ejercicio"
           value={search}
@@ -119,8 +140,16 @@ export default function EjerciciosScreen({ navigation }: Props) {
           data={filtered}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
+          }
           ListEmptyComponent={
-            <Text style={styles.emptyText}>No encontramos ejercicios con esos filtros.</Text>
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconWrap}>
+                <Ionicons name="search-outline" size={28} color={colors.primary} />
+              </View>
+              <Text style={styles.emptyText}>No encontramos ejercicios con esos filtros.</Text>
+            </View>
           }
           renderItem={({ item }) => (
             <Pressable onPress={() => navigation.navigate('ExerciseDetail', { exercise: item })}>
@@ -153,11 +182,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingTop: spacing.xs,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
   title: {
     fontSize: 28,
     fontFamily: fontFamily.bold,
     color: colors.textPrimary,
-    marginBottom: spacing.sm,
+  },
+  createButton: {
+    height: 40,
+    paddingHorizontal: spacing.sm,
   },
   filters: {
     gap: spacing.xs,
@@ -218,11 +256,24 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.md,
+  },
+  emptyIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
   emptyText: {
     fontSize: 14,
     fontFamily: fontFamily.regular,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginTop: spacing.lg,
   },
 });

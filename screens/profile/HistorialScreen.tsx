@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -21,27 +21,30 @@ export default function HistorialScreen({ navigation }: Props) {
   const { session } = useAuth();
   const [workouts, setWorkouts] = useState<WorkoutSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadWorkouts = useCallback(async () => {
+    if (!session?.user) return;
+    try {
+      const data = await fetchCompletedWorkouts(session.user.id);
+      setWorkouts(data);
+    } catch {
+      // Si falla, la lista queda como estaba; se puede reintentar con pull-to-refresh.
+    }
+  }, [session]);
 
   useFocusEffect(
     useCallback(() => {
-      if (!session?.user) return;
-      let active = true;
       setLoading(true);
-      fetchCompletedWorkouts(session.user.id)
-        .then((data) => {
-          if (active) setWorkouts(data);
-        })
-        .catch(() => {
-          // Si falla, la lista queda como estaba; se puede reintentar volviendo a la pantalla.
-        })
-        .finally(() => {
-          if (active) setLoading(false);
-        });
-      return () => {
-        active = false;
-      };
-    }, [session])
+      loadWorkouts().finally(() => setLoading(false));
+    }, [loadWorkouts])
   );
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadWorkouts();
+    setRefreshing(false);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -53,6 +56,9 @@ export default function HistorialScreen({ navigation }: Props) {
           data={workouts}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
+          }
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <View style={styles.emptyIconWrap}>

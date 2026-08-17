@@ -39,6 +39,7 @@ interface AuthContextValue {
   signOut: () => Promise<void>;
   saveOnboardingData: (data: Partial<Profile>) => Promise<AuthResult>;
   updateProfile: (data: Partial<Profile>) => Promise<AuthResult>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -113,6 +114,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => listener.subscription.unsubscribe();
   }, [fetchProfile]);
+
+  // Re-consulta el perfil actual (pull-to-refresh en Perfil, Fase 5). No
+  // reusa fetchProfile a propósito: esa función togglea profileLoading, que
+  // RootNavigator usa para tapar TODA la app con un loading a pantalla
+  // completa — bien para el login inicial, pero no para un pull-to-refresh.
+  const refreshProfile = useCallback(async () => {
+    if (!session?.user) return;
+    const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+    if (data) setProfile(data as Profile);
+  }, [session]);
 
   const signInWithEmail = useCallback(async (email: string, password: string): Promise<AuthResult> => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -260,6 +271,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
     saveOnboardingData,
     updateProfile,
+    refreshProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

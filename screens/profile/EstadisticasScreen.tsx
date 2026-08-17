@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Dimensions, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BarChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,32 +41,36 @@ export default function EstadisticasScreen({ navigation }: Props) {
   const { session } = useAuth();
   const [stats, setStats] = useState<WorkoutStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [volumeRange, setVolumeRange] = useState<'weekly' | 'monthly'>('weekly');
+
+  const loadStats = useCallback(async () => {
+    if (!session?.user) return;
+    try {
+      const data = await fetchWorkoutStats(session.user.id);
+      setStats(data);
+    } catch {
+      // Si falla, la pantalla queda como estaba; se puede reintentar con pull-to-refresh.
+    }
+  }, [session]);
 
   useFocusEffect(
     useCallback(() => {
-      if (!session?.user) return;
-      let active = true;
       setLoading(true);
-      fetchWorkoutStats(session.user.id)
-        .then((data) => {
-          if (active) setStats(data);
-        })
-        .catch(() => {
-          // Si falla, la pantalla queda vacía; se puede reintentar volviendo a entrar.
-        })
-        .finally(() => {
-          if (active) setLoading(false);
-        });
-      return () => {
-        active = false;
-      };
-    }, [session])
+      loadStats().finally(() => setLoading(false));
+    }, [loadStats])
   );
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadStats();
+    setRefreshing(false);
+  };
 
   const volumePoints = volumeRange === 'weekly' ? stats?.weeklyVolume ?? [] : stats?.monthlyVolume ?? [];
   const hasVolume = volumePoints.some((p) => p.totalVolumeKg > 0);
   const hasFrequency = (stats?.monthlyFrequency ?? []).some((p) => p.workoutCount > 0);
+  const hasAnyData = hasVolume || hasFrequency || !!stats?.personalRecords.length;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -75,7 +79,23 @@ export default function EstadisticasScreen({ navigation }: Props) {
       {loading ? (
         <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.lg }} />
       ) : (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
+          }
+        >
+          {!hasAnyData ? (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyStateIconWrap}>
+                <Ionicons name="stats-chart-outline" size={28} color={colors.primary} />
+              </View>
+              <Text style={styles.emptyText}>
+                Todavía no tenés entrenamientos completados. Terminá uno desde el tab Entrenamiento para ver tus estadísticas acá.
+              </Text>
+            </View>
+          ) : (
+            <>
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Volumen entrenado</Text>
             <SegmentedControl options={VOLUME_RANGE_OPTIONS} value={volumeRange} onChange={setVolumeRange} />
@@ -138,6 +158,8 @@ export default function EstadisticasScreen({ navigation }: Props) {
           ) : (
             <EmptyStatCard icon="trophy-outline" text="Todavía no hay récords para mostrar." />
           )}
+            </>
+          )}
         </ScrollView>
       )}
     </SafeAreaView>
@@ -175,6 +197,20 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginBottom: spacing.xs,
     marginTop: spacing.md,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.md,
+  },
+  emptyStateIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
   },
   chartCard: {
     alignItems: 'center',

@@ -37,6 +37,7 @@ export type EntrenamientoStackParamList = {
 export type EjerciciosStackParamList = {
   EjerciciosHome: undefined;
   ExerciseDetail: { exercise: Exercise };
+  CrearEjercicio: undefined;
 };
 
 // Stack anidado dentro del tab "Perfil" (Fase 4): datos + edición, historial
