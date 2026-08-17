@@ -1,10 +1,15 @@
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../context/AuthContext';
+import { calculateTDEE } from '../../lib/tdee';
 import { colors, fontFamily, radius, spacing } from '../../theme';
+import type { PerfilStackParamList } from '../../navigation/types';
+
+type Props = NativeStackScreenProps<PerfilStackParamList, 'PerfilHome'>;
 
 const GOAL_LABELS: Record<string, string> = {
   lose_fat: 'Perder grasa',
@@ -12,9 +17,9 @@ const GOAL_LABELS: Record<string, string> = {
   maintain: 'Mantener',
 };
 
-// Pantalla de perfil: datos de metabolismo basal cargados en el onboarding
-// y botón para cerrar sesión.
-export default function PerfilScreen() {
+// Pantalla de perfil: datos de metabolismo basal, TDEE estimado, accesos a
+// editar perfil / historial / estadísticas, y botón para cerrar sesión.
+export default function PerfilScreen({ navigation }: Props) {
   const { session, profile, signOut } = useAuth();
 
   const handleSignOut = () => {
@@ -24,18 +29,52 @@ export default function PerfilScreen() {
     ]);
   };
 
+  const tdee =
+    profile?.age && profile?.weight_kg && profile?.height_cm && profile?.gender && profile?.training_days && profile?.goal
+      ? calculateTDEE({
+          age: profile.age,
+          weightKg: profile.weight_kg,
+          heightCm: profile.height_cm,
+          gender: profile.gender,
+          trainingDays: profile.training_days,
+          goal: profile.goal,
+        })
+      : null;
+
   const stats = [
     { label: 'Edad', value: profile?.age ? `${profile.age} años` : '—' },
     { label: 'Peso', value: profile?.weight_kg ? `${profile.weight_kg} kg` : '—' },
     { label: 'Altura', value: profile?.height_cm ? `${profile.height_cm} cm` : '—' },
     { label: 'Días de entreno', value: profile?.training_days ? `${profile.training_days}/sem` : '—' },
     { label: 'Objetivo', value: profile?.goal ? GOAL_LABELS[profile.goal] : '—' },
+    { label: 'Calorías diarias (TDEE)', value: tdee ? `${tdee} kcal` : '—' },
+  ];
+
+  const menuItems = [
+    {
+      icon: 'time-outline' as const,
+      label: 'Historial de entrenamientos',
+      onPress: () => navigation.navigate('Historial'),
+    },
+    {
+      icon: 'stats-chart-outline' as const,
+      label: 'Estadísticas',
+      onPress: () => navigation.navigate('Estadisticas'),
+    },
   ];
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Perfil</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Perfil</Text>
+          <Button
+            title="Editar"
+            variant="secondary"
+            onPress={() => navigation.navigate('EditarPerfil')}
+            style={styles.editButton}
+          />
+        </View>
 
         <Card style={styles.profileCard}>
           <View style={styles.avatar}>
@@ -54,6 +93,20 @@ export default function PerfilScreen() {
             >
               <Text style={styles.statLabel}>{stat.label}</Text>
               <Text style={styles.statValue}>{stat.value}</Text>
+            </View>
+          ))}
+        </Card>
+
+        <Text style={styles.sectionTitle}>Actividad</Text>
+        <Card style={styles.menuCard}>
+          {menuItems.map((item, index) => (
+            <View key={item.label}>
+              {index > 0 && <View style={styles.menuDivider} />}
+              <Pressable onPress={item.onPress} style={styles.menuRow}>
+                <Ionicons name={item.icon} size={20} color={colors.primary} />
+                <Text style={styles.menuLabel}>{item.label}</Text>
+                <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+              </Pressable>
             </View>
           ))}
         </Card>
@@ -79,11 +132,20 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xs,
     paddingBottom: spacing.lg,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
   title: {
     fontSize: 28,
     fontFamily: fontFamily.bold,
     color: colors.textPrimary,
-    marginBottom: spacing.sm,
+  },
+  editButton: {
+    height: 40,
+    paddingHorizontal: spacing.sm,
   },
   profileCard: {
     alignItems: 'center',
@@ -115,6 +177,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semiBold,
     color: colors.textPrimary,
     marginBottom: spacing.xs,
+    marginTop: spacing.md,
   },
   statRow: {
     flexDirection: 'row',
@@ -134,6 +197,28 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: fontFamily.medium,
     color: colors.textPrimary,
+  },
+  menuCard: {
+    padding: 0,
+    overflow: 'hidden',
+    borderRadius: radius.lg,
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    height: 52,
+    paddingHorizontal: spacing.sm,
+  },
+  menuLabel: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: fontFamily.medium,
+    color: colors.textPrimary,
+  },
+  menuDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
   },
   signOutButton: {
     marginTop: spacing.lg,

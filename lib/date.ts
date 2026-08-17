@@ -1,6 +1,9 @@
-// Helpers de fecha/tiempo compartidos por Dashboard y Entrenamiento Activo.
+// Helpers de fecha/tiempo compartidos por Dashboard, Entrenamiento Activo,
+// Historial y Estadísticas (Fase 4).
 
 export const WEEKDAY_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
+export const MONTH_LABELS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
 // Índice de hoy con lunes=0 a domingo=6 (a diferencia de Date#getDay, que usa domingo=0).
 export function todayIndex(): number {
@@ -18,6 +21,12 @@ export function getWeekStart(): Date {
 // Índice de lunes=0 a domingo=6 a partir de una fecha ISO.
 export function dayIndexFromISODate(iso: string): number {
   return (new Date(iso).getDay() + 6) % 7;
+}
+
+// Formatea una fecha ISO como "15 mar", usado en el Historial de entrenamientos.
+export function formatShortDate(iso: string): string {
+  const date = new Date(iso);
+  return `${date.getDate()} ${MONTH_LABELS[date.getMonth()]}`;
 }
 
 // Formatea segundos como "H:MM:SS", igual al timer del diseño de Figma.

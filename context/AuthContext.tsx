@@ -38,6 +38,7 @@ interface AuthContextValue {
   signInWithGoogle: () => Promise<AuthResult>;
   signOut: () => Promise<void>;
   saveOnboardingData: (data: Partial<Profile>) => Promise<AuthResult>;
+  updateProfile: (data: Partial<Profile>) => Promise<AuthResult>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -227,6 +228,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [session]
   );
 
+  // Edición de perfil desde Fase 4 (a diferencia de saveOnboardingData, no
+  // toca onboarding_completed: el onboarding ya está hecho a esta altura).
+  const updateProfile = useCallback(
+    async (data: Partial<Profile>): Promise<AuthResult> => {
+      if (!session?.user) return { error: 'No hay sesión activa' };
+      const { data: updated, error } = await supabase
+        .from('profiles')
+        .update({ ...data, updated_at: new Date().toISOString() })
+        .eq('id', session.user.id)
+        .select('*')
+        .single();
+      if (!error) {
+        requestIdRef.current++; // invalida cualquier fetchProfile en vuelo (no debe pisar este resultado)
+        setProfile((updated as Profile) ?? null);
+      }
+      return { error: error?.message ?? null };
+    },
+    [session]
+  );
+
   const value: AuthContextValue = {
     session,
     profile,
@@ -238,6 +259,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signInWithGoogle,
     signOut,
     saveOnboardingData,
+    updateProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

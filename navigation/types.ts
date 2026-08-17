@@ -1,6 +1,7 @@
 // Tipos de parámetros de cada stack/tab, para navegación tipada con TypeScript.
 import type { NavigatorScreenParams } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import type { Exercise } from '../types/database';
 
 export type AuthStackParamList = {
   Welcome: undefined;
@@ -10,8 +11,8 @@ export type AuthStackParamList = {
 export type MainTabParamList = {
   Inicio: undefined;
   Entrenamiento: NavigatorScreenParams<EntrenamientoStackParamList>;
-  Ejercicios: undefined;
-  Perfil: undefined;
+  Ejercicios: NavigatorScreenParams<EjerciciosStackParamList>;
+  Perfil: NavigatorScreenParams<PerfilStackParamList>;
 };
 
 export type MainTabScreenProps<T extends keyof MainTabParamList> = BottomTabScreenProps<MainTabParamList, T>;
@@ -29,4 +30,26 @@ export type EntrenamientoStackParamList = {
     exerciseCount: number;
     completedSetCount: number;
   };
+};
+
+// Stack anidado dentro del tab "Ejercicios" (Fase 4): la biblioteca y el
+// detalle de un ejercicio puntual.
+export type EjerciciosStackParamList = {
+  EjerciciosHome: undefined;
+  ExerciseDetail: { exercise: Exercise };
+};
+
+// Stack anidado dentro del tab "Perfil" (Fase 4): datos + edición, historial
+// de entrenamientos y estadísticas.
+export type PerfilStackParamList = {
+  PerfilHome: undefined;
+  EditarPerfil: undefined;
+  Historial: undefined;
+  HistorialDetail: {
+    workoutId: string;
+    startedAt: string;
+    durationSeconds: number | null;
+    totalVolumeKg: number;
+  };
+  Estadisticas: undefined;
 };

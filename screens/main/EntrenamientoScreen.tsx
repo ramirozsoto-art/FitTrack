@@ -61,9 +61,14 @@ export default function EntrenamientoScreen({ navigation }: Props) {
           setRoutines((current) => current.filter((r) => r.id !== routine.id));
           try {
             await deleteRoutine(routine.id);
-          } catch {
+          } catch (err) {
             setRoutines(previous);
-            Alert.alert('No se pudo eliminar la rutina', 'Intentá de nuevo.');
+            // Mostramos el mensaje real de Postgres/PostgREST (RLS, foreign key,
+            // etc.) en vez de un genérico: es la única forma de diagnosticar
+            // por qué falla sin acceso directo a la base.
+            const message = err instanceof Error ? err.message : 'Intentá de nuevo.';
+            if (__DEV__) console.log('[deleteRoutine] error:', err);
+            Alert.alert('No se pudo eliminar la rutina', message);
           }
         },
       },

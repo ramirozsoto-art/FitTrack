@@ -3,8 +3,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import DashboardScreen from '../screens/main/DashboardScreen';
 import EntrenamientoStackNavigator from './EntrenamientoStackNavigator';
-import EjerciciosScreen from '../screens/main/EjerciciosScreen';
-import PerfilScreen from '../screens/main/PerfilScreen';
+import EjerciciosStackNavigator from './EjerciciosStackNavigator';
+import PerfilStackNavigator from './PerfilStackNavigator';
 import { colors, fontFamily } from '../theme';
 import type { MainTabParamList } from './types';
 
@@ -45,8 +45,8 @@ export default function MainTabNavigator() {
     >
       <Tab.Screen name="Inicio" component={DashboardScreen} />
       <Tab.Screen name="Entrenamiento" component={EntrenamientoStackNavigator} />
-      <Tab.Screen name="Ejercicios" component={EjerciciosScreen} />
-      <Tab.Screen name="Perfil" component={PerfilScreen} />
+      <Tab.Screen name="Ejercicios" component={EjerciciosStackNavigator} />
+      <Tab.Screen name="Perfil" component={PerfilStackNavigator} />
     </Tab.Navigator>
   );
 }
