@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Dimensions, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,32 +7,22 @@ import { useFocusEffect } from '@react-navigation/native';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../context/AuthContext';
+import { dayIndexFromISODate, getWeekStart, todayIndex, WEEKDAY_LABELS } from '../../lib/date';
 import { fetchUserRoutines, fetchWeeklyWorkouts } from '../../lib/routines';
 import { colors, fontFamily, radius, spacing } from '../../theme';
+import type { MainTabScreenProps } from '../../navigation/types';
 import type { Routine, Workout } from '../../types/database';
 
-const DAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-const TODAY_INDEX = (new Date().getDay() + 6) % 7; // lunes = 0
+const DAYS = WEEKDAY_LABELS;
+const TODAY_INDEX = todayIndex();
 
 const screenWidth = Dimensions.get('window').width;
 
-// Lunes 00:00 de la semana actual, usado como corte para el calendario y el
-// gráfico semanal.
-function getWeekStart(): Date {
-  const now = new Date();
-  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - TODAY_INDEX);
-  monday.setHours(0, 0, 0, 0);
-  return monday;
-}
-
-// Índice de lunes=0 a domingo=6 a partir de una fecha ISO.
-function dayIndexFromISODate(iso: string): number {
-  return (new Date(iso).getDay() + 6) % 7;
-}
+type Props = MainTabScreenProps<'Inicio'>;
 
 // Dashboard (tab "Inicio"): saludo, rutina de hoy, calendario semanal visual
 // y gráfico de actividad, todo con datos reales de Supabase.
-export default function DashboardScreen() {
+export default function DashboardScreen({ navigation }: Props) {
   const { profile, session } = useAuth();
   const firstName = profile?.full_name?.split(' ')[0] ?? session?.user?.email?.split('@')[0] ?? 'atleta';
 
@@ -66,11 +56,15 @@ export default function DashboardScreen() {
     setRefreshing(false);
   };
 
-  const handleTrain = () => {
-    Alert.alert('Próximamente', 'El registro de entrenamientos activos llega en la próxima fase.');
-  };
-
   const latestRoutine = routines[0] ?? null;
+
+  const handleTrain = () => {
+    if (!latestRoutine) return;
+    navigation.navigate('Entrenamiento', {
+      screen: 'ActiveWorkout',
+      params: { routineId: latestRoutine.id },
+    });
+  };
 
   const trainedDayIndices = useMemo(() => {
     return new Set(workouts.map((w) => dayIndexFromISODate(w.started_at)));

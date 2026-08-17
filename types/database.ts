@@ -79,17 +79,21 @@ export interface DraftRoutineExercise {
   rest_seconds: number;
 }
 
+export type WorkoutStatus = 'active' | 'completed' | 'cancelled';
+
 export interface Workout {
   id: string;
   user_id: string;
   routine_id: string | null;
   started_at: string;
   finished_at: string | null;
+  duration_seconds: number | null;
+  status: WorkoutStatus;
   created_at: string;
 }
 
-// No se usa en la UI de Fase 2 (el registro de sets en vivo es Fase 3), se
-// tipa por completitud del esquema.
+// Fase 3: cada fila representa una serie ya completada (solo se insertan al
+// tildar el check, no hay filas "pendientes" en la tabla).
 export interface WorkoutSet {
   id: string;
   workout_id: string;
@@ -97,5 +101,7 @@ export interface WorkoutSet {
   set_number: number;
   reps: number | null;
   weight_kg: number | null;
+  completed: boolean;
+  rest_seconds: number | null;
   created_at: string;
 }

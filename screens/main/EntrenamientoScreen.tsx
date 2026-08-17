@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Alert, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -15,8 +15,8 @@ import type { EntrenamientoStackParamList } from '../../navigation/types';
 
 type Props = NativeStackScreenProps<EntrenamientoStackParamList, 'EntrenamientoHome'>;
 
-// Pantalla raíz del tab "Entrenamiento": empezar entrenamiento (placeholder,
-// la lógica en vivo es Fase 3), crear rutina y la lista de rutinas guardadas.
+// Pantalla raíz del tab "Entrenamiento": empezar un entrenamiento (en blanco
+// o desde una rutina), crear rutina y la lista de rutinas guardadas.
 export default function EntrenamientoScreen({ navigation }: Props) {
   const { session } = useAuth();
   const [routines, setRoutines] = useState<Routine[]>([]);
@@ -47,9 +47,8 @@ export default function EntrenamientoScreen({ navigation }: Props) {
     setRefreshing(false);
   };
 
-  const handlePlaceholder = () => {
-    Alert.alert('Próximamente', 'El registro de entrenamientos activos llega en la próxima fase.');
-  };
+  const handleStartBlank = () => navigation.navigate('ActiveWorkout', { routineId: null });
+  const handleStartRoutine = (routineId: string) => navigation.navigate('ActiveWorkout', { routineId });
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -63,7 +62,7 @@ export default function EntrenamientoScreen({ navigation }: Props) {
         }
         ListHeaderComponent={
           <View>
-            <Button title="Empezar nuevo Entrenamiento" onPress={handlePlaceholder} style={styles.startButton} />
+            <Button title="Empezar nuevo Entrenamiento" onPress={handleStartBlank} style={styles.startButton} />
 
             <Text style={styles.sectionTitle}>Rutinas</Text>
             <Button
@@ -91,7 +90,7 @@ export default function EntrenamientoScreen({ navigation }: Props) {
             <Text style={styles.routineName} numberOfLines={1}>
               {item.name}
             </Text>
-            <Button title="Empezar Rutina" onPress={handlePlaceholder} style={styles.routineButton} />
+            <Button title="Empezar Rutina" onPress={() => handleStartRoutine(item.id)} style={styles.routineButton} />
           </Card>
         )}
       />
