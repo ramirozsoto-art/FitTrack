@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -8,7 +8,7 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import ScreenHeader from '../../components/ui/ScreenHeader';
 import { useAuth } from '../../context/AuthContext';
-import { fetchUserRoutines } from '../../lib/routines';
+import { deleteRoutine, fetchUserRoutines } from '../../lib/routines';
 import { colors, fontFamily, spacing } from '../../theme';
 import type { Routine } from '../../types/database';
 import type { EntrenamientoStackParamList } from '../../navigation/types';
@@ -50,6 +50,26 @@ export default function EntrenamientoScreen({ navigation }: Props) {
   const handleStartBlank = () => navigation.navigate('ActiveWorkout', { routineId: null });
   const handleStartRoutine = (routineId: string) => navigation.navigate('ActiveWorkout', { routineId });
 
+  const handleDeleteRoutine = (routine: Routine) => {
+    Alert.alert('Eliminar rutina', `¿Seguro que querés eliminar "${routine.name}"?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: async () => {
+          const previous = routines;
+          setRoutines((current) => current.filter((r) => r.id !== routine.id));
+          try {
+            await deleteRoutine(routine.id);
+          } catch {
+            setRoutines(previous);
+            Alert.alert('No se pudo eliminar la rutina', 'Intentá de nuevo.');
+          }
+        },
+      },
+    ]);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScreenHeader title="Entrenamiento" />
@@ -87,9 +107,14 @@ export default function EntrenamientoScreen({ navigation }: Props) {
         }
         renderItem={({ item }) => (
           <Card style={styles.routineCard}>
-            <Text style={styles.routineName} numberOfLines={1}>
-              {item.name}
-            </Text>
+            <View style={styles.routineHeader}>
+              <Text style={styles.routineName} numberOfLines={1}>
+                {item.name}
+              </Text>
+              <Pressable onPress={() => handleDeleteRoutine(item)} hitSlop={8} style={styles.deleteButton}>
+                <Ionicons name="trash-outline" size={18} color={colors.error} />
+              </Pressable>
+            </View>
             <Button title="Empezar Rutina" onPress={() => handleStartRoutine(item.id)} style={styles.routineButton} />
           </Card>
         )}
@@ -129,11 +154,20 @@ const styles = StyleSheet.create({
   routineCard: {
     marginBottom: spacing.xs,
   },
+  routineHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+  },
   routineName: {
+    flex: 1,
     fontSize: 16,
     fontFamily: fontFamily.semiBold,
     color: colors.textPrimary,
-    marginBottom: spacing.xs,
+  },
+  deleteButton: {
+    padding: 6,
   },
   routineButton: {
     height: 44,

@@ -1,12 +1,27 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import * as Linking from 'expo-linking';
+import * as AuthSession from 'expo-auth-session';
+import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../types/database';
 
-// Necesario para que el navegador de autenticación se cierre solo al volver a la app.
+// Necesario para que el browser de autenticación se cierre solo al volver a la app.
 WebBrowser.maybeCompleteAuthSession();
+
+// Client ID de tipo "Web application" en Google Cloud Console > Credentials.
+// Tiene que ser el mismo que ya está cargado en Supabase > Authentication >
+// Providers > Google, campo "Client ID" (no el Client Secret). Ver las
+// instrucciones de configuración completas al final de la respuesta.
+const GOOGLE_WEB_CLIENT_ID = 'TU_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com';
+
+// Lock a nivel de módulo (no de componente/state) para signInWithGoogle: tiene
+// que sobrevivir a re-renders y bloquear igual si el login se dispara desde más
+// de una fuente. expo-auth-session ya tiene su propio lock interno (devuelve
+// { type: 'locked' } si hay un promptAsync en curso), pero este bail-out
+// temprano además evita reconstruir el AuthRequest (nonce, discovery) de
+// arranque cada vez que se aprieta el botón sin necesidad.
+let googleSignInInFlight = false;
 
 interface AuthResult {
   error: string | null;
@@ -108,59 +123,87 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message ?? null };
   }, []);
 
+  // Discovery document OIDC de Google (endpoints de authorize/token/etc.).
+  // Se resuelve una sola vez por montaje del AuthProvider y se cachea acá.
+  const discovery = AuthSession.useAutoDiscovery('https://accounts.google.com');
+
   const signInWithGoogle = useCallback(async (): Promise<AuthResult> => {
-    const redirectTo = Linking.createURL('auth/callback');
-    if (__DEV__) {
-      // Copiar esta URL exacta a Supabase Dashboard > Authentication > URL
-      // Configuration > Redirect URLs (usar un wildcard tipo exp://*/--/auth/callback
-      // en desarrollo, ya que cambia con la IP/puerto de Expo Go).
-      console.log('[OAuth] redirectTo:', redirectTo);
+    // Si ya hay un flujo de Google en curso, ignorar por completo este llamado
+    // en lugar de arrancar un segundo intento solapado (ver comentario del
+    // lock arriba).
+    if (googleSignInInFlight) {
+      return { error: null };
     }
-
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo, skipBrowserRedirect: true },
-    });
-    if (error || !data?.url) {
-      return { error: error?.message ?? 'No se pudo iniciar sesión con Google' };
+    if (!discovery) {
+      // El discovery document todavía no terminó de cargar (pasa en el primer
+      // render); es un estado transitorio, no debería durar más que un instante.
+      return { error: 'Todavía se está preparando el login de Google. Probá de nuevo en un segundo.' };
     }
-
-    // Red de seguridad: en algunos dispositivos Android la promesa de
-    // openAuthSessionAsync no se resuelve aunque el deep link sí vuelva a la
-    // app. Escuchamos el evento de Linking en paralelo y usamos un flag para
-    // no intercambiar el mismo código PKCE dos veces (es de un solo uso).
-    let exchanged = false;
-    const exchangeOnce = async (url: string): Promise<AuthResult> => {
-      if (exchanged) return { error: null };
-      exchanged = true;
-      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(url);
-      return { error: exchangeError?.message ?? null };
-    };
-
-    let linkingResult: AuthResult | null = null;
-    const linkingSub = Linking.addEventListener('url', ({ url }) => {
-      if (url.startsWith(redirectTo)) {
-        exchangeOnce(url).then((res) => {
-          linkingResult = res;
-        });
-      }
-    });
+    googleSignInInFlight = true;
 
     try {
-      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-      if (__DEV__ && result.type !== 'success') {
-        console.log('[OAuth] openAuthSessionAsync result:', result.type);
+      const redirectUri = AuthSession.makeRedirectUri({ path: 'auth/callback' });
+      if (__DEV__) {
+        // Tiene que coincidir EXACTO con un URI autorizado en Google Cloud
+        // Console > Credentials > (el Client ID de arriba) > Authorized
+        // redirect URIs. En Expo Go cambia con la IP/puerto de Metro.
+        console.log('[OAuth] redirectUri:', redirectUri);
       }
-      if (result.type === 'success' && result.url) {
-        return await exchangeOnce(result.url);
+
+      // Nonce anti-replay del id_token: el hash (SHA-256) se manda a Google y
+      // queda embebido tal cual en el claim "nonce" del id_token devuelto; el
+      // valor crudo se lo pasamos después a signInWithIdToken, que lo vuelve a
+      // hashear del lado del servidor y compara contra ese claim.
+      const rawNonce = Crypto.randomUUID();
+      const hashedNonce = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, rawNonce);
+
+      const request = new AuthSession.AuthRequest({
+        clientId: GOOGLE_WEB_CLIENT_ID,
+        scopes: ['openid', 'profile', 'email'],
+        redirectUri,
+        responseType: AuthSession.ResponseType.IdToken,
+        usePKCE: false, // no hay intercambio de "code" del lado del cliente: pedimos el id_token directo
+        extraParams: { nonce: hashedNonce },
+      });
+
+      const result = await request.promptAsync(discovery);
+
+      if (result.type === 'error') {
+        const message =
+          result.error?.message ?? result.params.error_description ?? 'No se pudo iniciar sesión con Google';
+        if (__DEV__) {
+          console.log('[OAuth] Google devolvió un error:', message, result.params);
+        }
+        return { error: message };
       }
-      // Si el usuario cancela (result.type === 'cancel'/'dismiss') no lo tratamos
-      // como error, salvo que el listener de Linking ya haya resuelto el login.
-      return linkingResult ?? { error: null };
+
+      if (result.type !== 'success') {
+        // 'cancel' | 'dismiss' | 'locked': el usuario cerró el browser o ya
+        // había un intento en curso. No lo mostramos como error.
+        return { error: null };
+      }
+
+      const idToken = result.params.id_token;
+      if (!idToken) {
+        if (__DEV__) console.log('[OAuth] respuesta success sin id_token:', result.params);
+        return { error: 'Google no devolvió un id_token válido' };
+      }
+
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: idToken,
+        nonce: rawNonce,
+      });
+
+      if (error && __DEV__) {
+        console.log('[OAuth] signInWithIdToken error:', error.message);
+      }
+
+      return { error: error?.message ?? null };
     } finally {
-      linkingSub.remove();
+      googleSignInInFlight = false;
     }
-  }, []);
+  }, [discovery]);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();

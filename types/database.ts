@@ -86,7 +86,7 @@ export interface Workout {
   user_id: string;
   routine_id: string | null;
   started_at: string;
-  finished_at: string | null;
+  ended_at: string | null;
   duration_seconds: number | null;
   status: WorkoutStatus;
   created_at: string;
@@ -100,7 +100,7 @@ export interface WorkoutSet {
   exercise_id: string;
   set_number: number;
   reps: number | null;
-  weight_kg: number | null;
+  weight: number | null;
   completed: boolean;
   rest_seconds: number | null;
   created_at: string;

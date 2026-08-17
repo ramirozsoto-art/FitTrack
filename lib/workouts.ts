@@ -36,7 +36,7 @@ export async function insertWorkoutSet(params: InsertSetParams): Promise<Workout
       exercise_id: params.exerciseId,
       set_number: params.setNumber,
       reps: params.reps,
-      weight_kg: params.weightKg,
+      weight: params.weightKg,
       completed: true,
       rest_seconds: params.restSeconds,
     })
@@ -57,7 +57,7 @@ export async function finishWorkout(workoutId: string, durationSeconds: number):
   const { error } = await supabase
     .from('workouts')
     .update({
-      finished_at: new Date().toISOString(),
+      ended_at: new Date().toISOString(),
       duration_seconds: Math.round(durationSeconds),
       status: 'completed',
     })
@@ -71,7 +71,7 @@ export async function finishWorkout(workoutId: string, durationSeconds: number):
 export async function cancelWorkout(workoutId: string): Promise<void> {
   const { error } = await supabase
     .from('workouts')
-    .update({ finished_at: new Date().toISOString(), status: 'cancelled' })
+    .update({ ended_at: new Date().toISOString(), status: 'cancelled' })
     .eq('id', workoutId);
 
   if (error) throw error;

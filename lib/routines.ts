@@ -111,6 +111,13 @@ export async function createRoutine(
   }
 }
 
+// routine_exercises tiene "on delete cascade" hacia routines, así que no hace
+// falta borrar esas filas aparte.
+export async function deleteRoutine(routineId: string): Promise<void> {
+  const { error } = await supabase.from('routines').delete().eq('id', routineId);
+  if (error) throw error;
+}
+
 // Entrenamientos del usuario desde weekStart (inclusive) hasta hoy, usados
 // para el calendario semanal y el gráfico de actividad del Dashboard.
 export async function fetchWeeklyWorkouts(userId: string, weekStart: Date): Promise<Workout[]> {
