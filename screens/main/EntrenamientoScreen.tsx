@@ -48,8 +48,14 @@ export default function EntrenamientoScreen({ navigation }: Props) {
     setRefreshing(false);
   };
 
-  const handleStartBlank = () => navigation.navigate('ActiveWorkout', { routineId: null });
-  const handleStartRoutine = (routineId: string) => navigation.navigate('ActiveWorkout', { routineId });
+  const handleStartBlank = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    navigation.navigate('ActiveWorkout', { routineId: null });
+  };
+  const handleStartRoutine = (routineId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    navigation.navigate('ActiveWorkout', { routineId });
+  };
 
   const handleDeleteRoutine = (routine: Routine) => {
     Alert.alert('Eliminar rutina', `¿Seguro que querés eliminar "${routine.name}"?`, [

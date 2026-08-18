@@ -282,6 +282,7 @@ export default function ActiveWorkoutScreen({ navigation, route }: Props) {
       setFinishing(true);
       try {
         await finishWorkout(workout.id, elapsedSeconds);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         navigation.replace('PostWorkout', {
           workoutId: workout.id,
           durationSeconds: elapsedSeconds,

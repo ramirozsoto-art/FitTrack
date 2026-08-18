@@ -3,6 +3,7 @@ import { Dimensions, RefreshControl, ScrollView, StyleSheet, Text, View } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from '@react-navigation/native';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
@@ -60,6 +61,7 @@ export default function DashboardScreen({ navigation }: Props) {
 
   const handleTrain = () => {
     if (!latestRoutine) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     navigation.navigate('Entrenamiento', {
       screen: 'ActiveWorkout',
       params: { routineId: latestRoutine.id },
