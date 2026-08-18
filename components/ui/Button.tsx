@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { ActivityIndicator, Pressable, StyleProp, StyleSheet, Text, ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { colors, fontFamily, radius } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { fontFamily, radius, type ThemeColors } from '../../theme';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -22,6 +24,8 @@ export default function Button({
   loading,
   style,
 }: ButtonProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const scale = useSharedValue(1);
   const isDisabled = disabled || loading;
 
@@ -67,33 +71,35 @@ export default function Button({
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    height: 56,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  primary: {
-    backgroundColor: colors.primary,
-  },
-  secondary: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  ghost: {
-    backgroundColor: 'transparent',
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  text: {
-    fontSize: 17,
-    fontFamily: fontFamily.semiBold,
-  },
-  textPrimary: { color: colors.white },
-  textSecondary: { color: colors.textPrimary },
-  textGhost: { color: colors.primary },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    base: {
+      height: 56,
+      borderRadius: radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+    },
+    primary: {
+      backgroundColor: colors.primary,
+    },
+    secondary: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    ghost: {
+      backgroundColor: 'transparent',
+    },
+    disabled: {
+      opacity: 0.5,
+    },
+    text: {
+      fontSize: 17,
+      fontFamily: fontFamily.semiBold,
+    },
+    textPrimary: { color: colors.white },
+    textSecondary: { color: colors.textPrimary },
+    textGhost: { color: colors.primary },
+  });
+}

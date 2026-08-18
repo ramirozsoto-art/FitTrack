@@ -7,12 +7,14 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import TextField from '../../components/ui/TextField';
+import { useTheme } from '../../context/ThemeContext';
 import { fetchExercises } from '../../lib/exercises';
-import { colors, fontFamily, radius, spacing } from '../../theme';
+import { fontFamily, radius, spacing, type ThemeColors } from '../../theme';
 import type { Exercise } from '../../types/database';
 import type { EjerciciosStackParamList } from '../../navigation/types';
 
 type Props = NativeStackScreenProps<EjerciciosStackParamList, 'EjerciciosHome'>;
+type Styles = ReturnType<typeof createStyles>;
 
 const ALL_FILTER = 'Todos';
 
@@ -22,10 +24,12 @@ function FilterChip({
   label,
   selected,
   onPress,
+  styles,
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
+  styles: Styles;
 }) {
   return (
     <Pressable onPress={onPress} style={[styles.chip, selected && styles.chipSelected]}>
@@ -37,6 +41,8 @@ function FilterChip({
 // Biblioteca de ejercicios (Fase 4): búsqueda por nombre, filtros por grupo
 // muscular/equipamiento y navegación al detalle de cada ejercicio.
 export default function EjerciciosScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -117,6 +123,7 @@ export default function EjerciciosScreen({ navigation }: Props) {
                 label={group}
                 selected={muscleGroupFilter === group}
                 onPress={() => setMuscleGroupFilter(group)}
+                styles={styles}
               />
             ))}
           </ScrollView>
@@ -127,6 +134,7 @@ export default function EjerciciosScreen({ navigation }: Props) {
                 label={equipment}
                 selected={equipmentFilter === equipment}
                 onPress={() => setEquipmentFilter(equipment)}
+                styles={styles}
               />
             ))}
           </ScrollView>
@@ -173,107 +181,109 @@ export default function EjerciciosScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
-  },
-  title: {
-    fontSize: 28,
-    fontFamily: fontFamily.bold,
-    color: colors.textPrimary,
-  },
-  createButton: {
-    height: 40,
-    paddingHorizontal: spacing.sm,
-  },
-  filters: {
-    gap: spacing.xs,
-    marginBottom: spacing.xs,
-  },
-  chipRow: {
-    paddingHorizontal: spacing.md,
-    gap: 8,
-  },
-  chip: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 8,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  chipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  chipText: {
-    fontSize: 13,
-    fontFamily: fontFamily.medium,
-    color: colors.textSecondary,
-  },
-  chipTextSelected: {
-    color: colors.white,
-  },
-  listContent: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.lg,
-    gap: spacing.xs,
-  },
-  exerciseCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.xs,
-  },
-  exerciseIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  exerciseName: {
-    fontSize: 16,
-    fontFamily: fontFamily.medium,
-    color: colors.textPrimary,
-  },
-  exerciseMeta: {
-    fontSize: 13,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.md,
-  },
-  emptyIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xs,
-  },
-  emptyText: {
-    fontSize: 14,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.xs,
+    },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.sm,
+    },
+    title: {
+      fontSize: 28,
+      fontFamily: fontFamily.bold,
+      color: colors.textPrimary,
+    },
+    createButton: {
+      height: 40,
+      paddingHorizontal: spacing.sm,
+    },
+    filters: {
+      gap: spacing.xs,
+      marginBottom: spacing.xs,
+    },
+    chipRow: {
+      paddingHorizontal: spacing.md,
+      gap: 8,
+    },
+    chip: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 8,
+      borderRadius: radius.full,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    chipSelected: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    chipText: {
+      fontSize: 13,
+      fontFamily: fontFamily.medium,
+      color: colors.textSecondary,
+    },
+    chipTextSelected: {
+      color: colors.white,
+    },
+    listContent: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.xs,
+      paddingBottom: spacing.lg,
+      gap: spacing.xs,
+    },
+    exerciseCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      marginBottom: spacing.xs,
+    },
+    exerciseIconWrap: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.md,
+      backgroundColor: colors.primaryLight,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    exerciseName: {
+      fontSize: 16,
+      fontFamily: fontFamily.medium,
+      color: colors.textPrimary,
+    },
+    exerciseMeta: {
+      fontSize: 13,
+      fontFamily: fontFamily.regular,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    emptyState: {
+      alignItems: 'center',
+      paddingVertical: spacing.lg,
+      paddingHorizontal: spacing.md,
+    },
+    emptyIconWrap: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: colors.primaryLight,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.xs,
+    },
+    emptyText: {
+      fontSize: 14,
+      fontFamily: fontFamily.regular,
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+  });
+}

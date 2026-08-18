@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -15,7 +15,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Button from '../../components/ui/Button';
 import TextField from '../../components/ui/TextField';
 import { useAuth } from '../../context/AuthContext';
-import { colors, fontFamily, spacing } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { fontFamily, spacing, type ThemeColors } from '../../theme';
 import type { AuthStackParamList } from '../../navigation/types';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'SignUp'>;
@@ -23,6 +24,8 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'SignUp'>;
 // Pantalla de registro con email/contraseña. Al crear la cuenta, el
 // AuthContext arma el perfil vacío y el flujo pasa a Metabolismo Basal.
 export default function SignUpScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { signUpWithEmail } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -110,41 +113,43 @@ export default function SignUpScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.lg,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  header: {
-    marginBottom: spacing.lg,
-  },
-  title: {
-    fontSize: 28,
-    fontFamily: fontFamily.bold,
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: 15,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  submitButton: {
-    marginTop: spacing.xs,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.xs,
+      paddingBottom: spacing.lg,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.md,
+    },
+    header: {
+      marginBottom: spacing.lg,
+    },
+    title: {
+      fontSize: 28,
+      fontFamily: fontFamily.bold,
+      color: colors.textPrimary,
+    },
+    subtitle: {
+      fontSize: 15,
+      fontFamily: fontFamily.regular,
+      color: colors.textSecondary,
+      marginTop: 4,
+    },
+    submitButton: {
+      marginTop: spacing.xs,
+    },
+  });
+}

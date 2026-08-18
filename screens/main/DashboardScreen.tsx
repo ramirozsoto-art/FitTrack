@@ -7,10 +7,12 @@ import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from '@react-navigation/native';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import Skeleton from '../../components/ui/Skeleton';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { dayIndexFromISODate, getWeekStart, todayIndex, WEEKDAY_LABELS } from '../../lib/date';
 import { fetchUserRoutines, fetchWeeklyWorkouts } from '../../lib/routines';
-import { colors, fontFamily, radius, spacing } from '../../theme';
+import { fontFamily, radius, spacing, type ThemeColors } from '../../theme';
 import type { MainTabScreenProps } from '../../navigation/types';
 import type { Routine, Workout } from '../../types/database';
 
@@ -24,11 +26,14 @@ type Props = MainTabScreenProps<'Inicio'>;
 // Dashboard (tab "Inicio"): saludo, rutina de hoy, calendario semanal visual
 // y gráfico de actividad, todo con datos reales de Supabase.
 export default function DashboardScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { profile, session } = useAuth();
   const firstName = profile?.full_name?.split(' ')[0] ?? session?.user?.email?.split('@')[0] ?? 'atleta';
 
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadDashboard = useCallback(async () => {
@@ -42,6 +47,8 @@ export default function DashboardScreen({ navigation }: Props) {
       setWorkouts(workoutsData);
     } catch {
       // Si falla, se mantienen los últimos datos cargados; se puede reintentar con pull-to-refresh.
+    } finally {
+      setLoading(false);
     }
   }, [session]);
 
@@ -84,6 +91,14 @@ export default function DashboardScreen({ navigation }: Props) {
     () => ({ labels: DAYS, datasets: [{ data: dailyCounts }] }),
     [dailyCounts]
   );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <DashboardSkeleton styles={styles} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -147,8 +162,8 @@ export default function DashboardScreen({ navigation }: Props) {
                 backgroundGradientFrom: colors.surface,
                 backgroundGradientTo: colors.surface,
                 decimalPlaces: 0,
-                color: (opacity = 1) => `rgba(234, 88, 12, ${opacity})`,
-                labelColor: () => colors.textSecondary,
+                color: (opacity = 1) => hexToRgba(colors.primary, opacity),
+                labelColor: (opacity = 1) => hexToRgba(colors.textSecondary, opacity),
                 propsForDots: { r: '4', strokeWidth: '2', stroke: colors.primary },
               }}
               bezier
@@ -168,117 +183,162 @@ export default function DashboardScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.lg,
-  },
-  greeting: {
-    fontSize: 28,
-    fontFamily: fontFamily.bold,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  todayCard: {
-    marginBottom: spacing.md,
-  },
-  todayCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.sm,
-  },
-  todayIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.md,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  todayLabel: {
-    fontSize: 13,
-    fontFamily: fontFamily.medium,
-    color: colors.textSecondary,
-  },
-  todayTitle: {
-    fontSize: 19,
-    fontFamily: fontFamily.semiBold,
-    color: colors.textPrimary,
-  },
-  todayEmptyText: {
-    fontSize: 13,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
-    lineHeight: 18,
-  },
-  trainButton: {
-    height: 48,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: fontFamily.semiBold,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  weekCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-  },
-  dayItem: {
-    alignItems: 'center',
-  },
-  dayCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.background,
-  },
-  dayCircleActive: {
-    backgroundColor: colors.primary,
-  },
-  dayLabel: {
-    fontSize: 13,
-    fontFamily: fontFamily.medium,
-    color: colors.textSecondary,
-  },
-  dayLabelToday: {
-    color: colors.primary,
-    fontFamily: fontFamily.semiBold,
-  },
-  chartCard: {
-    alignItems: 'center',
-    paddingRight: 0,
-  },
-  chart: {
-    borderRadius: radius.md,
-  },
-  chartEmptyCard: {
-    alignItems: 'center',
-    paddingVertical: spacing.lg,
-  },
-  emptyIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xs,
-  },
-  chartEmptyText: {
-    fontSize: 14,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    paddingHorizontal: spacing.md,
-  },
-});
+// Convierte un color hex (#RRGGBB) a rgba(...) para los callbacks de color de
+// react-native-chart-kit, que necesitan variar la opacidad de un color que
+// ahora depende del theme activo (antes era un rgba(234, 88, 12, ...) fijo).
+function hexToRgba(hex: string, opacity: number): string {
+  const match = hex.replace('#', '');
+  const r = parseInt(match.substring(0, 2), 16);
+  const g = parseInt(match.substring(2, 4), 16);
+  const b = parseInt(match.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+}
+
+// Silueta de carga del Dashboard: saludo, tarjeta "rutina de hoy", semana y gráfico.
+function DashboardSkeleton({ styles }: { styles: ReturnType<typeof createStyles> }) {
+  return (
+    <View style={styles.scrollContent}>
+      <Skeleton width={180} height={30} style={{ marginBottom: spacing.sm }} />
+
+      <Card style={styles.todayCard}>
+        <View style={styles.todayCardHeader}>
+          <Skeleton width={44} height={44} radius={radius.md} />
+          <View style={{ flex: 1, gap: 6 }}>
+            <Skeleton width="50%" height={13} />
+            <Skeleton width="75%" height={19} />
+          </View>
+        </View>
+        <Skeleton height={48} radius={radius.md} />
+      </Card>
+
+      <Skeleton width={130} height={22} style={{ marginBottom: spacing.xs }} />
+      <Card style={[styles.weekCard, { alignItems: 'center' }]}>
+        {DAYS.map((_, index) => (
+          <Skeleton key={index} width={32} height={32} radius={16} />
+        ))}
+      </Card>
+
+      <Skeleton width={100} height={22} style={{ marginBottom: spacing.xs }} />
+      <Card style={styles.chartCard}>
+        <Skeleton width={screenWidth - spacing.md * 2 - spacing.sm * 2} height={180} radius={radius.md} />
+      </Card>
+    </View>
+  );
+}
+
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.xs,
+      paddingBottom: spacing.lg,
+    },
+    greeting: {
+      fontSize: 28,
+      fontFamily: fontFamily.bold,
+      color: colors.textPrimary,
+      marginBottom: spacing.sm,
+    },
+    todayCard: {
+      marginBottom: spacing.md,
+    },
+    todayCardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      marginBottom: spacing.sm,
+    },
+    todayIconWrap: {
+      width: 44,
+      height: 44,
+      borderRadius: radius.md,
+      backgroundColor: colors.primaryLight,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    todayLabel: {
+      fontSize: 13,
+      fontFamily: fontFamily.medium,
+      color: colors.textSecondary,
+    },
+    todayTitle: {
+      fontSize: 19,
+      fontFamily: fontFamily.semiBold,
+      color: colors.textPrimary,
+    },
+    todayEmptyText: {
+      fontSize: 13,
+      fontFamily: fontFamily.regular,
+      color: colors.textSecondary,
+      lineHeight: 18,
+    },
+    trainButton: {
+      height: 48,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontFamily: fontFamily.semiBold,
+      color: colors.textPrimary,
+      marginBottom: spacing.xs,
+    },
+    weekCard: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: spacing.md,
+    },
+    dayItem: {
+      alignItems: 'center',
+    },
+    dayCircle: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.background,
+    },
+    dayCircleActive: {
+      backgroundColor: colors.primary,
+    },
+    dayLabel: {
+      fontSize: 13,
+      fontFamily: fontFamily.medium,
+      color: colors.textSecondary,
+    },
+    dayLabelToday: {
+      color: colors.primary,
+      fontFamily: fontFamily.semiBold,
+    },
+    chartCard: {
+      alignItems: 'center',
+      paddingRight: 0,
+    },
+    chart: {
+      borderRadius: radius.md,
+    },
+    chartEmptyCard: {
+      alignItems: 'center',
+      paddingVertical: spacing.lg,
+    },
+    emptyIconWrap: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.primaryLight,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.xs,
+    },
+    chartEmptyText: {
+      fontSize: 14,
+      fontFamily: fontFamily.regular,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      paddingHorizontal: spacing.md,
+    },
+  });
+}

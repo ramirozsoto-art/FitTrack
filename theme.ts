@@ -1,7 +1,30 @@
 // Tema global de FitTrack: colores, espaciados, radios y tipografía.
 // Basado en el diseño de Figma (paleta naranja, estilo iOS nativo).
+//
+// Los colores dependen del modo (claro/oscuro) — ver context/ThemeContext.tsx,
+// que expone el set activo vía useTheme(). lightColors queda exportado además
+// como `colors` por compatibilidad con código que no necesita reaccionar a un
+// cambio de tema en caliente (ver ThemeContext para el criterio de cuándo usar
+// cada uno).
+export interface ThemeColors {
+  primary: string;
+  primaryDark: string;
+  primaryLight: string;
+  background: string;
+  surface: string;
+  textPrimary: string;
+  textSecondary: string;
+  textTertiary: string;
+  border: string;
+  error: string;
+  success: string;
+  overlay: string;
+  glass: string;
+  white: string;
+  black: string;
+}
 
-export const colors = {
+export const lightColors: ThemeColors = {
   primary: '#EA580C',
   primaryDark: '#C2410C',
   primaryLight: '#FFEDD5',
@@ -17,7 +40,28 @@ export const colors = {
   glass: 'rgba(255, 255, 255, 0.7)',
   white: '#FFFFFF',
   black: '#000000',
-} as const;
+};
+
+export const darkColors: ThemeColors = {
+  primary: '#FB923C',
+  primaryDark: '#EA580C',
+  primaryLight: '#3A2412',
+  background: '#0B0F19',
+  surface: '#1F2937',
+  textPrimary: '#F9FAFB',
+  textSecondary: '#9CA3AF',
+  textTertiary: '#6B7280',
+  border: '#374151',
+  error: '#F87171',
+  success: '#4ADE80',
+  overlay: 'rgba(0, 0, 0, 0.6)',
+  glass: 'rgba(31, 41, 55, 0.7)',
+  white: '#FFFFFF',
+  black: '#000000',
+};
+
+// Alias para el código que todavía no pasó a useTheme() (ir migrando).
+export const colors = lightColors;
 
 export const spacing = {
   xs: 8,

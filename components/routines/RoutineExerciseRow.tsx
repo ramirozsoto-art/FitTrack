@@ -1,7 +1,9 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Card from '../ui/Card';
-import { colors, fontFamily, radius, spacing } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { fontFamily, radius, spacing, type ThemeColors } from '../../theme';
 import type { DraftRoutineExercise } from '../../types/database';
 
 interface RoutineExerciseRowProps {
@@ -24,6 +26,8 @@ export default function RoutineExerciseRow({
   onMoveDown,
   onRemove,
 }: RoutineExerciseRowProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <Card style={styles.card}>
       <View style={styles.iconWrap}>
@@ -52,41 +56,43 @@ export default function RoutineExerciseRow({
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.xs,
-  },
-  iconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  info: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 15,
-    fontFamily: fontFamily.medium,
-    color: colors.textPrimary,
-  },
-  meta: {
-    fontSize: 12,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  actionButton: {
-    padding: 6,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    card: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      marginBottom: spacing.xs,
+    },
+    iconWrap: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.md,
+      backgroundColor: colors.primaryLight,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    info: {
+      flex: 1,
+    },
+    name: {
+      fontSize: 15,
+      fontFamily: fontFamily.medium,
+      color: colors.textPrimary,
+    },
+    meta: {
+      fontSize: 12,
+      fontFamily: fontFamily.regular,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    actions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+    },
+    actionButton: {
+      padding: 6,
+    },
+  });
+}

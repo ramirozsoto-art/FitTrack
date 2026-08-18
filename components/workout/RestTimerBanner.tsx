@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import Animated, {
@@ -9,7 +9,8 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { colors, fontFamily, radius, shadow, spacing } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { fontFamily, radius, shadow, spacing, type ThemeColors } from '../../theme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const SIZE = 64;
@@ -26,6 +27,8 @@ interface RestTimerBannerProps {
 // Banner de descanso entre series: aro circular con la cuenta regresiva y
 // botón para saltarlo. Se muestra flotando arriba de "Terminar Entrenamiento".
 export default function RestTimerBanner({ secondsLeft, totalSeconds, onSkip }: RestTimerBannerProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const progress = useSharedValue(1);
 
   useEffect(() => {
@@ -76,53 +79,55 @@ export default function RestTimerBanner({ secondsLeft, totalSeconds, onSkip }: R
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.xs,
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.xs,
-    gap: spacing.xs,
-    ...shadow.md,
-  },
-  ringWrap: {
-    width: SIZE,
-    height: SIZE,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  seconds: {
-    position: 'absolute',
-    fontSize: 16,
-    fontFamily: fontFamily.semiBold,
-    color: colors.textPrimary,
-  },
-  textWrap: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 15,
-    fontFamily: fontFamily.semiBold,
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: 12,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  skipButton: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.md,
-    backgroundColor: colors.primaryLight,
-  },
-  skipText: {
-    fontSize: 14,
-    fontFamily: fontFamily.semiBold,
-    color: colors.primary,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderRadius: radius.lg,
+      padding: spacing.xs,
+      marginHorizontal: spacing.md,
+      marginBottom: spacing.xs,
+      gap: spacing.xs,
+      ...shadow.md,
+    },
+    ringWrap: {
+      width: SIZE,
+      height: SIZE,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    seconds: {
+      position: 'absolute',
+      fontSize: 16,
+      fontFamily: fontFamily.semiBold,
+      color: colors.textPrimary,
+    },
+    textWrap: {
+      flex: 1,
+    },
+    title: {
+      fontSize: 15,
+      fontFamily: fontFamily.semiBold,
+      color: colors.textPrimary,
+    },
+    subtitle: {
+      fontSize: 12,
+      fontFamily: fontFamily.regular,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    skipButton: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.md,
+      backgroundColor: colors.primaryLight,
+    },
+    skipText: {
+      fontSize: 14,
+      fontFamily: fontFamily.semiBold,
+      color: colors.primary,
+    },
+  });
+}

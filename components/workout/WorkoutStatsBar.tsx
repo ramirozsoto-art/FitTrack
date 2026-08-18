@@ -1,7 +1,9 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatClock } from '../../lib/date';
-import { colors, fontFamily, spacing } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { fontFamily, spacing, type ThemeColors } from '../../theme';
 
 interface WorkoutStatsBarProps {
   elapsedSeconds: number;
@@ -18,6 +20,8 @@ export default function WorkoutStatsBar({
   completedSets,
   restActive,
 }: WorkoutStatsBarProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.container}>
       <View style={styles.item}>
@@ -40,25 +44,27 @@ export default function WorkoutStatsBar({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    backgroundColor: colors.primaryDark,
-    paddingVertical: spacing.xs,
-  },
-  item: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 2,
-  },
-  value: {
-    fontSize: 14,
-    fontFamily: fontFamily.semiBold,
-    color: colors.white,
-  },
-  label: {
-    fontSize: 11,
-    fontFamily: fontFamily.medium,
-    color: 'rgba(255,255,255,0.85)',
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      backgroundColor: colors.primaryDark,
+      paddingVertical: spacing.xs,
+    },
+    item: {
+      flex: 1,
+      alignItems: 'center',
+      gap: 2,
+    },
+    value: {
+      fontSize: 14,
+      fontFamily: fontFamily.semiBold,
+      color: colors.white,
+    },
+    label: {
+      fontSize: 11,
+      fontFamily: fontFamily.medium,
+      color: 'rgba(255,255,255,0.85)',
+    },
+  });
+}

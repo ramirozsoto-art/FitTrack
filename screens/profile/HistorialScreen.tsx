@@ -1,15 +1,17 @@
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Card from '../../components/ui/Card';
 import ScreenHeader from '../../components/ui/ScreenHeader';
+import Skeleton from '../../components/ui/Skeleton';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { formatClock, formatShortDate } from '../../lib/date';
 import { fetchCompletedWorkouts } from '../../lib/history';
-import { colors, fontFamily, radius, spacing } from '../../theme';
+import { fontFamily, radius, spacing, type ThemeColors } from '../../theme';
 import type { WorkoutSummary } from '../../lib/history';
 import type { PerfilStackParamList } from '../../navigation/types';
 
@@ -18,6 +20,8 @@ type Props = NativeStackScreenProps<PerfilStackParamList, 'Historial'>;
 // Historial de entrenamientos completados (Fase 4): fecha, duración y
 // volumen total de cada sesión, más reciente primero.
 export default function HistorialScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
   const [workouts, setWorkouts] = useState<WorkoutSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +54,17 @@ export default function HistorialScreen({ navigation }: Props) {
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <ScreenHeader title="Historial" onBack={() => navigation.goBack()} />
       {loading ? (
-        <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.lg }} />
+        <View style={styles.listContent}>
+          {Array.from({ length: 8 }).map((_, index) => (
+            <Card key={index} style={styles.workoutCard}>
+              <Skeleton width={40} height={40} radius={radius.md} />
+              <View style={{ flex: 1, gap: 6 }}>
+                <Skeleton width="45%" height={16} />
+                <Skeleton width="65%" height={13} />
+              </View>
+            </Card>
+          ))}
+        </View>
       ) : (
         <FlatList
           data={workouts}
@@ -100,60 +114,62 @@ export default function HistorialScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  listContent: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
-    gap: spacing.xs,
-  },
-  workoutCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.xs,
-  },
-  dateIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  workoutDate: {
-    fontSize: 16,
-    fontFamily: fontFamily.medium,
-    color: colors.textPrimary,
-  },
-  workoutMeta: {
-    fontSize: 13,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.md,
-  },
-  emptyIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xs,
-  },
-  emptyText: {
-    fontSize: 14,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    listContent: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.lg,
+      gap: spacing.xs,
+    },
+    workoutCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      marginBottom: spacing.xs,
+    },
+    dateIconWrap: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.md,
+      backgroundColor: colors.primaryLight,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    workoutDate: {
+      fontSize: 16,
+      fontFamily: fontFamily.medium,
+      color: colors.textPrimary,
+    },
+    workoutMeta: {
+      fontSize: 13,
+      fontFamily: fontFamily.regular,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    emptyState: {
+      alignItems: 'center',
+      paddingVertical: spacing.lg,
+      paddingHorizontal: spacing.md,
+    },
+    emptyIconWrap: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: colors.primaryLight,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.xs,
+    },
+    emptyText: {
+      fontSize: 14,
+      fontFamily: fontFamily.regular,
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+  });
+}

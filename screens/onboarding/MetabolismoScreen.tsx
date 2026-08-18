@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -17,7 +17,8 @@ import Card from '../../components/ui/Card';
 import SegmentedControl from '../../components/ui/SegmentedControl';
 import TextField from '../../components/ui/TextField';
 import { useAuth } from '../../context/AuthContext';
-import { colors, fontFamily, radius, spacing } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { fontFamily, radius, spacing, type ThemeColors } from '../../theme';
 import type { Gender, Goal } from '../../types/database';
 
 const GOAL_OPTIONS: { value: Goal; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
@@ -31,6 +32,8 @@ const TRAINING_DAYS_OPTIONS = [3, 4, 5, 6].map((n) => ({ label: String(n), value
 // Formulario de Metabolismo Basal: se muestra una sola vez, luego de crear
 // la cuenta, y guarda los datos en la tabla profiles de Supabase.
 export default function MetabolismoScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { saveOnboardingData } = useAuth();
 
   const [age, setAge] = useState('');
@@ -162,85 +165,87 @@ export default function MetabolismoScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
-  },
-  header: {
-    marginBottom: spacing.md,
-  },
-  title: {
-    fontSize: 26,
-    fontFamily: fontFamily.bold,
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: 14,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
-    marginTop: 4,
-    lineHeight: 20,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  rowInput: {
-    flex: 1,
-  },
-  label: {
-    fontSize: 13,
-    fontFamily: fontFamily.medium,
-    color: colors.textSecondary,
-    marginBottom: 8,
-  },
-  genderCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
-  },
-  genderText: {
-    fontSize: 15,
-    fontFamily: fontFamily.medium,
-    color: colors.textPrimary,
-  },
-  genderTextInactive: {
-    color: colors.textTertiary,
-  },
-  goalList: {
-    gap: spacing.xs,
-  },
-  goalOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    height: 56,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  goalOptionSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryLight,
-  },
-  goalOptionText: {
-    fontSize: 15,
-    fontFamily: fontFamily.medium,
-    color: colors.textPrimary,
-  },
-  goalOptionTextSelected: {
-    color: colors.primaryDark,
-  },
-  continueButton: {
-    marginTop: spacing.lg,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.lg,
+    },
+    header: {
+      marginBottom: spacing.md,
+    },
+    title: {
+      fontSize: 26,
+      fontFamily: fontFamily.bold,
+      color: colors.textPrimary,
+    },
+    subtitle: {
+      fontSize: 14,
+      fontFamily: fontFamily.regular,
+      color: colors.textSecondary,
+      marginTop: 4,
+      lineHeight: 20,
+    },
+    row: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+    rowInput: {
+      flex: 1,
+    },
+    label: {
+      fontSize: 13,
+      fontFamily: fontFamily.medium,
+      color: colors.textSecondary,
+      marginBottom: 8,
+    },
+    genderCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.sm,
+    },
+    genderText: {
+      fontSize: 15,
+      fontFamily: fontFamily.medium,
+      color: colors.textPrimary,
+    },
+    genderTextInactive: {
+      color: colors.textTertiary,
+    },
+    goalList: {
+      gap: spacing.xs,
+    },
+    goalOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      height: 56,
+      paddingHorizontal: spacing.sm,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    goalOptionSelected: {
+      borderColor: colors.primary,
+      backgroundColor: colors.primaryLight,
+    },
+    goalOptionText: {
+      fontSize: 15,
+      fontFamily: fontFamily.medium,
+      color: colors.textPrimary,
+    },
+    goalOptionTextSelected: {
+      color: colors.primaryDark,
+    },
+    continueButton: {
+      marginTop: spacing.lg,
+    },
+  });
+}

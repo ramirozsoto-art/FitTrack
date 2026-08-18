@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,8 +9,9 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import ScreenHeader from '../../components/ui/ScreenHeader';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { deleteRoutine, fetchUserRoutines } from '../../lib/routines';
-import { colors, fontFamily, spacing } from '../../theme';
+import { fontFamily, spacing, type ThemeColors } from '../../theme';
 import type { Routine } from '../../types/database';
 import type { EntrenamientoStackParamList } from '../../navigation/types';
 
@@ -19,6 +20,8 @@ type Props = NativeStackScreenProps<EntrenamientoStackParamList, 'EntrenamientoH
 // Pantalla raíz del tab "Entrenamiento": empezar un entrenamiento (en blanco
 // o desde una rutina), crear rutina y la lista de rutinas guardadas.
 export default function EntrenamientoScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,73 +139,75 @@ export default function EntrenamientoScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  listContent: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
-  },
-  startButton: {
-    marginBottom: spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: fontFamily.semiBold,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  createButton: {
-    marginBottom: spacing.md,
-  },
-  subsectionTitle: {
-    fontSize: 15,
-    fontFamily: fontFamily.medium,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-  },
-  routineCard: {
-    marginBottom: spacing.xs,
-  },
-  routineHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.xs,
-  },
-  routineName: {
-    flex: 1,
-    fontSize: 16,
-    fontFamily: fontFamily.semiBold,
-    color: colors.textPrimary,
-  },
-  deleteButton: {
-    padding: 6,
-  },
-  routineButton: {
-    height: 44,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: spacing.lg,
-  },
-  emptyIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xs,
-  },
-  emptyText: {
-    fontSize: 14,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    listContent: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.lg,
+    },
+    startButton: {
+      marginBottom: spacing.lg,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontFamily: fontFamily.semiBold,
+      color: colors.textPrimary,
+      marginBottom: spacing.xs,
+    },
+    createButton: {
+      marginBottom: spacing.md,
+    },
+    subsectionTitle: {
+      fontSize: 15,
+      fontFamily: fontFamily.medium,
+      color: colors.textSecondary,
+      marginBottom: spacing.xs,
+    },
+    routineCard: {
+      marginBottom: spacing.xs,
+    },
+    routineHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      marginBottom: spacing.xs,
+    },
+    routineName: {
+      flex: 1,
+      fontSize: 16,
+      fontFamily: fontFamily.semiBold,
+      color: colors.textPrimary,
+    },
+    deleteButton: {
+      padding: 6,
+    },
+    routineButton: {
+      height: 44,
+    },
+    emptyState: {
+      alignItems: 'center',
+      paddingVertical: spacing.lg,
+    },
+    emptyIconWrap: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: colors.primaryLight,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.xs,
+    },
+    emptyText: {
+      fontSize: 14,
+      fontFamily: fontFamily.regular,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      paddingHorizontal: spacing.lg,
+    },
+  });
+}

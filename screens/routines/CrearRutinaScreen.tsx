@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -19,8 +19,9 @@ import RoutineExerciseRow from '../../components/routines/RoutineExerciseRow';
 import ExercisePickerSheet from '../../components/routines/ExercisePickerSheet';
 import type { ExercisePickerSheetRef } from '../../components/routines/ExercisePickerSheet';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { createRoutine } from '../../lib/routines';
-import { colors, fontFamily, spacing } from '../../theme';
+import { fontFamily, spacing, type ThemeColors } from '../../theme';
 import type { DraftRoutineExercise, Exercise } from '../../types/database';
 import type { EntrenamientoStackParamList } from '../../navigation/types';
 
@@ -33,6 +34,8 @@ const DEFAULT_REST_SECONDS = 60;
 // Pantalla para armar una rutina nueva: título + lista de ejercicios elegidos
 // desde el bottom sheet de búsqueda. Guarda en "routines" + "routine_exercises".
 export default function CrearRutinaScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
   const sheetRef = useRef<ExercisePickerSheetRef>(null);
 
@@ -137,43 +140,45 @@ export default function CrearRutinaScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  flex: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: spacing.lg,
-  },
-  emptyIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xs,
-  },
-  emptyText: {
-    fontSize: 14,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  addButton: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.lg,
-  },
-  saveButton: {
-    marginBottom: spacing.xs,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    flex: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.lg,
+    },
+    emptyState: {
+      alignItems: 'center',
+      paddingVertical: spacing.lg,
+    },
+    emptyIconWrap: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: colors.primaryLight,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.xs,
+    },
+    emptyText: {
+      fontSize: 14,
+      fontFamily: fontFamily.regular,
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    addButton: {
+      marginTop: spacing.sm,
+      marginBottom: spacing.lg,
+    },
+    saveButton: {
+      marginBottom: spacing.xs,
+    },
+  });
+}

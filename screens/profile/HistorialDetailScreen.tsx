@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Card from '../../components/ui/Card';
 import ScreenHeader from '../../components/ui/ScreenHeader';
+import { useTheme } from '../../context/ThemeContext';
 import { formatClock, formatShortDate } from '../../lib/date';
 import { fetchWorkoutDetail } from '../../lib/history';
-import { colors, fontFamily, radius, spacing } from '../../theme';
+import { fontFamily, radius, spacing, type ThemeColors } from '../../theme';
 import type { WorkoutExerciseGroup } from '../../lib/history';
 import type { PerfilStackParamList } from '../../navigation/types';
 
@@ -17,6 +18,8 @@ type Props = NativeStackScreenProps<PerfilStackParamList, 'HistorialDetail'>;
 // peso), agrupados por ejercicio. El resumen del header viaja por params
 // (ya se calculó en la lista); acá solo se pide el detalle de las series.
 export default function HistorialDetailScreen({ navigation, route }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { startedAt, durationSeconds, totalVolumeKg, workoutId } = route.params;
   const [groups, setGroups] = useState<WorkoutExerciseGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,81 +83,83 @@ export default function HistorialDetailScreen({ navigation, route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    gap: spacing.sm,
-  },
-  summaryItem: {
-    flex: 1,
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  summaryValue: {
-    fontSize: 18,
-    fontFamily: fontFamily.semiBold,
-    color: colors.textPrimary,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
-  },
-  exerciseCard: {
-    marginBottom: spacing.xs,
-  },
-  exerciseHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.xs,
-  },
-  exerciseIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: radius.sm,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  exerciseName: {
-    fontSize: 15,
-    fontFamily: fontFamily.semiBold,
-    color: colors.textPrimary,
-  },
-  setRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingVertical: 6,
-    paddingLeft: 40,
-  },
-  setLabel: {
-    fontSize: 13,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
-    width: 64,
-  },
-  setValue: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: fontFamily.medium,
-    color: colors.textPrimary,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    summaryRow: {
+      flexDirection: 'row',
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      gap: spacing.sm,
+    },
+    summaryItem: {
+      flex: 1,
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderRadius: radius.md,
+      paddingVertical: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    summaryValue: {
+      fontSize: 18,
+      fontFamily: fontFamily.semiBold,
+      color: colors.textPrimary,
+    },
+    summaryLabel: {
+      fontSize: 12,
+      fontFamily: fontFamily.regular,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.lg,
+    },
+    exerciseCard: {
+      marginBottom: spacing.xs,
+    },
+    exerciseHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      marginBottom: spacing.xs,
+    },
+    exerciseIconWrap: {
+      width: 32,
+      height: 32,
+      borderRadius: radius.sm,
+      backgroundColor: colors.primaryLight,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    exerciseName: {
+      fontSize: 15,
+      fontFamily: fontFamily.semiBold,
+      color: colors.textPrimary,
+    },
+    setRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      paddingVertical: 6,
+      paddingLeft: 40,
+    },
+    setLabel: {
+      fontSize: 13,
+      fontFamily: fontFamily.regular,
+      color: colors.textSecondary,
+      width: 64,
+    },
+    setValue: {
+      flex: 1,
+      fontSize: 14,
+      fontFamily: fontFamily.medium,
+      color: colors.textPrimary,
+    },
+  });
+}

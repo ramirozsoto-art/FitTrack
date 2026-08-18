@@ -10,8 +10,9 @@ import {
   useFonts,
 } from '@expo-google-fonts/inter';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import RootNavigator from './navigation/RootNavigator';
-import { colors } from './theme';
+import { colors as staticColors } from './theme';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -22,9 +23,11 @@ export default function App() {
   });
 
   if (!fontsLoaded) {
+    // Todavía no montamos ThemeProvider (necesita fuentes cargadas para el resto
+    // del árbol), así que esta pantalla usa el light theme fijo como fallback.
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={colors.primary} size="large" />
+      <View style={[styles.loading, { backgroundColor: staticColors.background }]}>
+        <ActivityIndicator color={staticColors.primary} size="large" />
       </View>
     );
   }
@@ -32,12 +35,23 @@ export default function App() {
   return (
     <GestureHandlerRootView style={styles.flex}>
       <SafeAreaProvider>
-        <AuthProvider>
-          <StatusBar style="dark" />
-          <RootNavigator />
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
+  );
+}
+
+function AppContent() {
+  const { scheme } = useTheme();
+  return (
+    <>
+      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+      <RootNavigator />
+    </>
   );
 }
 
@@ -47,7 +61,6 @@ const styles = StyleSheet.create({
   },
   loading: {
     flex: 1,
-    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },

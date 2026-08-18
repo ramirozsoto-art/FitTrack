@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fontFamily, spacing } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { fontFamily, spacing, type ThemeColors } from '../../theme';
 
 interface ScreenHeaderProps {
   title: string;
@@ -11,6 +13,8 @@ interface ScreenHeaderProps {
 // en pantallas que necesitan diferenciarse del header blanco simple (como
 // Inicio/Perfil), por ejemplo el stack de Entrenamiento.
 export default function ScreenHeader({ title, onBack }: ScreenHeaderProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.container}>
       <View style={styles.side}>
@@ -28,27 +32,29 @@ export default function ScreenHeader({ title, onBack }: ScreenHeaderProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.xs,
-  },
-  side: {
-    width: 40,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-  },
-  backButton: {
-    padding: 4,
-  },
-  title: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 17,
-    fontFamily: fontFamily.semiBold,
-    color: colors.white,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      height: 56,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.primary,
+      paddingHorizontal: spacing.xs,
+    },
+    side: {
+      width: 40,
+      alignItems: 'flex-start',
+      justifyContent: 'center',
+    },
+    backButton: {
+      padding: 4,
+    },
+    title: {
+      flex: 1,
+      textAlign: 'center',
+      fontSize: 17,
+      fontFamily: fontFamily.semiBold,
+      color: colors.white,
+    },
+  });
+}

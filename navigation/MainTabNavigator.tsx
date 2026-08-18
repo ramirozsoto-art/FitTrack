@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -5,7 +6,8 @@ import DashboardScreen from '../screens/main/DashboardScreen';
 import EntrenamientoStackNavigator from './EntrenamientoStackNavigator';
 import EjerciciosStackNavigator from './EjerciciosStackNavigator';
 import PerfilStackNavigator from './PerfilStackNavigator';
-import { colors, fontFamily } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { fontFamily, type ThemeColors } from '../theme';
 import type { MainTabParamList } from './types';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -26,6 +28,8 @@ const ICONS_OUTLINE: Record<keyof MainTabParamList, keyof typeof Ionicons.glyphM
 
 // Tab bar inferior estilo iOS nativo: 4 tabs, activo en naranja, inactivo en gris.
 export default function MainTabNavigator() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -51,14 +55,16 @@ export default function MainTabNavigator() {
   );
 }
 
-const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: colors.surface,
-    borderTopColor: colors.border,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  tabBarLabel: {
-    fontFamily: fontFamily.medium,
-    fontSize: 11,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    tabBar: {
+      backgroundColor: colors.surface,
+      borderTopColor: colors.border,
+      borderTopWidth: StyleSheet.hairlineWidth,
+    },
+    tabBarLabel: {
+      fontFamily: fontFamily.medium,
+      fontSize: 11,
+    },
+  });
+}

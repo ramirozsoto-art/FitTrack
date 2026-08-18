@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -15,7 +15,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Button from '../../components/ui/Button';
 import TextField from '../../components/ui/TextField';
 import { useAuth } from '../../context/AuthContext';
-import { colors, fontFamily, spacing } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { fontFamily, spacing, type ThemeColors } from '../../theme';
 import type { AuthStackParamList } from '../../navigation/types';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Welcome'>;
@@ -23,6 +24,8 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'Welcome'>;
 // Pantalla de bienvenida + login. Combina logo, botón de Google e inputs de
 // email/contraseña, como pide el diseño de Figma.
 export default function WelcomeScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { signInWithEmail, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -107,79 +110,81 @@ export default function WelcomeScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.lg,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  logo: {
-    fontSize: 40,
-    fontFamily: fontFamily.bold,
-    color: colors.primary,
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 15,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
-    marginTop: spacing.xs / 2,
-  },
-  googleButton: {
-    height: 56,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  googleButtonText: {
-    fontSize: 16,
-    fontFamily: fontFamily.medium,
-    color: colors.textPrimary,
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: spacing.md,
-    gap: spacing.xs,
-  },
-  dividerLine: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.border,
-  },
-  dividerText: {
-    fontSize: 12,
-    fontFamily: fontFamily.regular,
-    color: colors.textTertiary,
-  },
-  loginButton: {
-    marginTop: spacing.xs,
-  },
-  signUpLink: {
-    marginTop: spacing.md,
-    alignItems: 'center',
-  },
-  signUpText: {
-    fontSize: 14,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
-  },
-  signUpTextBold: {
-    fontFamily: fontFamily.semiBold,
-    color: colors.primary,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.lg,
+    },
+    header: {
+      alignItems: 'center',
+      marginBottom: spacing.lg,
+    },
+    logo: {
+      fontSize: 40,
+      fontFamily: fontFamily.bold,
+      color: colors.primary,
+      letterSpacing: -0.5,
+    },
+    subtitle: {
+      fontSize: 15,
+      fontFamily: fontFamily.regular,
+      color: colors.textSecondary,
+      marginTop: spacing.xs / 2,
+    },
+    googleButton: {
+      height: 56,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+    },
+    googleButtonText: {
+      fontSize: 16,
+      fontFamily: fontFamily.medium,
+      color: colors.textPrimary,
+    },
+    dividerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginVertical: spacing.md,
+      gap: spacing.xs,
+    },
+    dividerLine: {
+      flex: 1,
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.border,
+    },
+    dividerText: {
+      fontSize: 12,
+      fontFamily: fontFamily.regular,
+      color: colors.textTertiary,
+    },
+    loginButton: {
+      marginTop: spacing.xs,
+    },
+    signUpLink: {
+      marginTop: spacing.md,
+      alignItems: 'center',
+    },
+    signUpText: {
+      fontSize: 14,
+      fontFamily: fontFamily.regular,
+      color: colors.textSecondary,
+    },
+    signUpTextBold: {
+      fontFamily: fontFamily.semiBold,
+      color: colors.primary,
+    },
+  });
+}

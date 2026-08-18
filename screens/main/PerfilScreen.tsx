@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,9 +6,11 @@ import * as Haptics from 'expo-haptics';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import SegmentedControl from '../../components/ui/SegmentedControl';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme, type ThemeMode } from '../../context/ThemeContext';
 import { calculateTDEE } from '../../lib/tdee';
-import { colors, fontFamily, radius, spacing } from '../../theme';
+import { fontFamily, radius, spacing, type ThemeColors } from '../../theme';
 import type { PerfilStackParamList } from '../../navigation/types';
 
 type Props = NativeStackScreenProps<PerfilStackParamList, 'PerfilHome'>;
@@ -19,9 +21,17 @@ const GOAL_LABELS: Record<string, string> = {
   maintain: 'Mantener',
 };
 
+const THEME_MODE_OPTIONS: { label: string; value: ThemeMode }[] = [
+  { label: 'Claro', value: 'light' },
+  { label: 'Oscuro', value: 'dark' },
+  { label: 'Automático', value: 'auto' },
+];
+
 // Pantalla de perfil: datos de metabolismo basal, TDEE estimado, accesos a
-// editar perfil / historial / estadísticas, y botón para cerrar sesión.
+// editar perfil / historial / estadísticas, apariencia y botón para cerrar sesión.
 export default function PerfilScreen({ navigation }: Props) {
+  const { colors, mode, setMode } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { session, profile, signOut, refreshProfile } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -132,6 +142,11 @@ export default function PerfilScreen({ navigation }: Props) {
           ))}
         </Card>
 
+        <Text style={styles.sectionTitle}>Apariencia</Text>
+        <Card>
+          <SegmentedControl options={THEME_MODE_OPTIONS} value={mode} onChange={setMode} />
+        </Card>
+
         <Button
           title="Cerrar sesión"
           variant="secondary"
@@ -143,105 +158,107 @@ export default function PerfilScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.lg,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
-  },
-  title: {
-    fontSize: 28,
-    fontFamily: fontFamily.bold,
-    color: colors.textPrimary,
-  },
-  editButton: {
-    height: 40,
-    paddingHorizontal: spacing.sm,
-  },
-  profileCard: {
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    marginBottom: spacing.md,
-  },
-  avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xs,
-  },
-  name: {
-    fontSize: 18,
-    fontFamily: fontFamily.semiBold,
-    color: colors.textPrimary,
-  },
-  email: {
-    fontSize: 14,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: fontFamily.semiBold,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-    marginTop: spacing.md,
-  },
-  statRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.xs,
-  },
-  statRowBorder: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  statLabel: {
-    fontSize: 15,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
-  },
-  statValue: {
-    fontSize: 15,
-    fontFamily: fontFamily.medium,
-    color: colors.textPrimary,
-  },
-  menuCard: {
-    padding: 0,
-    overflow: 'hidden',
-    borderRadius: radius.lg,
-  },
-  menuRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    height: 52,
-    paddingHorizontal: spacing.sm,
-  },
-  menuLabel: {
-    flex: 1,
-    fontSize: 15,
-    fontFamily: fontFamily.medium,
-    color: colors.textPrimary,
-  },
-  menuDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.border,
-  },
-  signOutButton: {
-    marginTop: spacing.lg,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.xs,
+      paddingBottom: spacing.lg,
+    },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.sm,
+    },
+    title: {
+      fontSize: 28,
+      fontFamily: fontFamily.bold,
+      color: colors.textPrimary,
+    },
+    editButton: {
+      height: 40,
+      paddingHorizontal: spacing.sm,
+    },
+    profileCard: {
+      alignItems: 'center',
+      paddingVertical: spacing.md,
+      marginBottom: spacing.md,
+    },
+    avatar: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: colors.primaryLight,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.xs,
+    },
+    name: {
+      fontSize: 18,
+      fontFamily: fontFamily.semiBold,
+      color: colors.textPrimary,
+    },
+    email: {
+      fontSize: 14,
+      fontFamily: fontFamily.regular,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontFamily: fontFamily.semiBold,
+      color: colors.textPrimary,
+      marginBottom: spacing.xs,
+      marginTop: spacing.md,
+    },
+    statRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: spacing.xs,
+    },
+    statRowBorder: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    statLabel: {
+      fontSize: 15,
+      fontFamily: fontFamily.regular,
+      color: colors.textSecondary,
+    },
+    statValue: {
+      fontSize: 15,
+      fontFamily: fontFamily.medium,
+      color: colors.textPrimary,
+    },
+    menuCard: {
+      padding: 0,
+      overflow: 'hidden',
+      borderRadius: radius.lg,
+    },
+    menuRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      height: 52,
+      paddingHorizontal: spacing.sm,
+    },
+    menuLabel: {
+      flex: 1,
+      fontSize: 15,
+      fontFamily: fontFamily.medium,
+      color: colors.textPrimary,
+    },
+    menuDivider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.border,
+    },
+    signOutButton: {
+      marginTop: spacing.lg,
+    },
+  });
+}

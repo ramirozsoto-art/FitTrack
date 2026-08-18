@@ -20,9 +20,10 @@ import ExerciseSetTable from '../../components/workout/ExerciseSetTable';
 import WorkoutStatsBar from '../../components/workout/WorkoutStatsBar';
 import RestTimerBanner from '../../components/workout/RestTimerBanner';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { fetchRoutineExercises } from '../../lib/routines';
 import { cancelWorkout, finishWorkout, insertWorkoutSet, deleteWorkoutSet, startWorkout } from '../../lib/workouts';
-import { colors, spacing } from '../../theme';
+import { spacing, type ThemeColors } from '../../theme';
 import type { Exercise, Workout } from '../../types/database';
 import type { ActiveExercise, ActiveSetRow } from '../../types/workoutSession';
 import type { EntrenamientoStackParamList } from '../../navigation/types';
@@ -48,6 +49,8 @@ function buildEmptySet(setNumber: number, defaultReps: number): ActiveSetRow {
 // Figma) y descanso entre series. Cubre tanto el arranque desde una rutina
 // (ejercicios precargados) como un entrenamiento en blanco (captura 05).
 export default function ActiveWorkoutScreen({ navigation, route }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { routineId } = route.params;
   const { session } = useAuth();
   const userId = session?.user.id;
@@ -388,50 +391,52 @@ export default function ActiveWorkoutScreen({ navigation, route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  flex: {
-    flex: 1,
-  },
-  loadingWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
-  },
-  emptyIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  emptyStartButton: {
-    width: '100%',
-  },
-  addExerciseButton: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  restTimerOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: spacing.sm,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    flex: {
+      flex: 1,
+    },
+    loadingWrap: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.lg,
+    },
+    emptyState: {
+      alignItems: 'center',
+      paddingVertical: spacing.xl,
+    },
+    emptyIconWrap: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.md,
+    },
+    emptyStartButton: {
+      width: '100%',
+    },
+    addExerciseButton: {
+      marginTop: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    restTimerOverlay: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: spacing.sm,
+    },
+  });
+}

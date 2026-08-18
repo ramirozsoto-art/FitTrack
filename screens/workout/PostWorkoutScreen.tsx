@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,9 +9,10 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { dayIndexFromISODate, formatClock, getWeekStart, WEEKDAY_LABELS } from '../../lib/date';
 import { fetchWeeklyWorkouts } from '../../lib/routines';
-import { colors, fontFamily, spacing } from '../../theme';
+import { fontFamily, spacing, type ThemeColors } from '../../theme';
 import type { EntrenamientoStackParamList, MainTabParamList } from '../../navigation/types';
 
 type Props = NativeStackScreenProps<EntrenamientoStackParamList, 'PostWorkout'>;
@@ -19,6 +20,8 @@ type Props = NativeStackScreenProps<EntrenamientoStackParamList, 'PostWorkout'>;
 // Resumen post-entrenamiento (captura 07 de Figma): racha semanal + stats
 // de la sesión que acaba de terminar.
 export default function PostWorkoutScreen({ navigation, route }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { durationSeconds, totalVolumeKg, exerciseCount, completedSetCount } = route.params;
   const { session } = useAuth();
   const [trainedDayIndices, setTrainedDayIndices] = useState<Set<number>>(new Set());
@@ -43,13 +46,14 @@ export default function PostWorkoutScreen({ navigation, route }: Props) {
   );
 
   const handleViewStats = () => {
+    navigation.reset({ index: 0, routes: [{ name: 'EntrenamientoHome' }] });
     navigation.getParent<NavigationProp<MainTabParamList>>()?.navigate('Perfil', {
       screen: 'Estadisticas',
     });
   };
 
   const handleContinue = () => {
-    navigation.popToTop();
+    navigation.reset({ index: 0, routes: [{ name: 'EntrenamientoHome' }] });
     navigation.getParent<NavigationProp<MainTabParamList>>()?.navigate('Inicio');
   };
 
@@ -114,6 +118,8 @@ function StatTile({
   value: string;
   label: string;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <Card style={styles.statTile}>
       <Ionicons name={icon} size={20} color={colors.primary} />
@@ -123,100 +129,102 @@ function StatTile({
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.surface,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.lg,
-  },
-  doneCard: {
-    backgroundColor: colors.background,
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  doneText: {
-    fontSize: 18,
-    fontFamily: fontFamily.bold,
-    color: colors.textPrimary,
-    letterSpacing: 0.5,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    marginBottom: spacing.lg,
-  },
-  statTileWrap: {
-    flexBasis: '47%',
-    flexGrow: 1,
-  },
-  statTile: {
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-  },
-  statValue: {
-    fontSize: 18,
-    fontFamily: fontFamily.bold,
-    color: colors.textPrimary,
-    marginTop: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  streakLabel: {
-    fontSize: 15,
-    fontFamily: fontFamily.semiBold,
-    color: colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: spacing.sm,
-  },
-  streakRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.xs,
-  },
-  dayLetterCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dayLetterText: {
-    fontSize: 12,
-    fontFamily: fontFamily.semiBold,
-    color: colors.textSecondary,
-  },
-  dayStatusCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dayStatusCircleActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  footer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    marginTop: spacing.xl,
-    gap: spacing.xs,
-  },
-  statsButton: {
-    marginBottom: 0,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.surface,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.lg,
+    },
+    doneCard: {
+      backgroundColor: colors.background,
+      alignItems: 'center',
+      paddingVertical: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    doneText: {
+      fontSize: 18,
+      fontFamily: fontFamily.bold,
+      color: colors.textPrimary,
+      letterSpacing: 0.5,
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+      marginBottom: spacing.lg,
+    },
+    statTileWrap: {
+      flexBasis: '47%',
+      flexGrow: 1,
+    },
+    statTile: {
+      alignItems: 'center',
+      paddingVertical: spacing.sm,
+    },
+    statValue: {
+      fontSize: 18,
+      fontFamily: fontFamily.bold,
+      color: colors.textPrimary,
+      marginTop: 4,
+    },
+    statLabel: {
+      fontSize: 12,
+      fontFamily: fontFamily.regular,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    streakLabel: {
+      fontSize: 15,
+      fontFamily: fontFamily.semiBold,
+      color: colors.textPrimary,
+      textAlign: 'center',
+      marginBottom: spacing.sm,
+    },
+    streakRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: spacing.xs,
+    },
+    dayLetterCircle: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: colors.background,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dayLetterText: {
+      fontSize: 12,
+      fontFamily: fontFamily.semiBold,
+      color: colors.textSecondary,
+    },
+    dayStatusCircle: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dayStatusCircleActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    footer: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      marginTop: spacing.xl,
+      gap: spacing.xs,
+    },
+    statsButton: {
+      marginBottom: 0,
+    },
+  });
+}

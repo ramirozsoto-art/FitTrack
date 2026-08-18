@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -6,8 +6,9 @@ import Button from '../../components/ui/Button';
 import ScreenHeader from '../../components/ui/ScreenHeader';
 import TextField from '../../components/ui/TextField';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { createExercise } from '../../lib/exercises';
-import { colors, spacing } from '../../theme';
+import { spacing, type ThemeColors } from '../../theme';
 import type { EjerciciosStackParamList } from '../../navigation/types';
 
 type Props = NativeStackScreenProps<EjerciciosStackParamList, 'CrearEjercicio'>;
@@ -16,6 +17,8 @@ type Props = NativeStackScreenProps<EjerciciosStackParamList, 'CrearEjercicio'>;
 // que se muestran en el detalle. Se guarda en "exercises" con
 // created_by = auth.uid() e is_default = false.
 export default function CrearEjercicioScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
 
   const [name, setName] = useState('');
@@ -81,20 +84,22 @@ export default function CrearEjercicioScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  flex: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
-  },
-  saveButton: {
-    marginTop: spacing.sm,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    flex: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.lg,
+    },
+    saveButton: {
+      marginTop: spacing.sm,
+    },
+  });
+}

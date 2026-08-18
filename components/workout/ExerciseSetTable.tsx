@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
-import { colors, fontFamily, radius, spacing } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { fontFamily, radius, spacing, type ThemeColors } from '../../theme';
 import type { ActiveExercise } from '../../types/workoutSession';
 
 interface ExerciseSetTableProps {
@@ -24,6 +25,8 @@ export default function ExerciseSetTable({
   onToggleSet,
   onAddSet,
 }: ExerciseSetTableProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.wrap}>
       <Card style={styles.card}>
@@ -64,7 +67,7 @@ export default function ExerciseSetTable({
                 <ActivityIndicator size="small" color={colors.primary} />
               ) : (
                 <Pressable onPress={() => onToggleSet(index)} hitSlop={8} style={styles.checkButton}>
-                  <SetCheckIcon completed={set.completed} />
+                  <SetCheckIcon completed={set.completed} colors={colors} />
                 </Pressable>
               )}
             </View>
@@ -80,7 +83,7 @@ export default function ExerciseSetTable({
 const AnimatedIonicons = Animated.createAnimatedComponent(Ionicons);
 
 // Ícono de check con un pequeño rebote de escala al pasar a completado.
-function SetCheckIcon({ completed }: { completed: boolean }) {
+function SetCheckIcon({ completed, colors }: { completed: boolean; colors: ThemeColors }) {
   const scale = useSharedValue(1);
   const wasCompleted = useRef(completed);
 
@@ -108,59 +111,61 @@ function SetCheckIcon({ completed }: { completed: boolean }) {
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: {
-    marginBottom: spacing.sm,
-  },
-  card: {
-    padding: spacing.sm,
-    marginBottom: spacing.xs,
-  },
-  exerciseName: {
-    fontSize: 17,
-    fontFamily: fontFamily.semiBold,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    paddingBottom: 6,
-  },
-  headerCell: {
-    fontSize: 12,
-    fontFamily: fontFamily.medium,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: radius.sm,
-    paddingVertical: 6,
-  },
-  rowAlt: {
-    backgroundColor: colors.background,
-  },
-  rowText: {
-    fontSize: 15,
-    fontFamily: fontFamily.medium,
-    color: colors.textPrimary,
-    textAlign: 'center',
-  },
-  colSerie: { flex: 0.8 },
-  colKg: { flex: 1 },
-  colReps: { flex: 1.4 },
-  colCheck: { flex: 0.8, alignItems: 'center', justifyContent: 'center' },
-  cellInput: {
-    fontSize: 15,
-    fontFamily: fontFamily.medium,
-    color: colors.textPrimary,
-    paddingVertical: 4,
-  },
-  checkButton: {
-    padding: 2,
-  },
-  addSetButton: {
-    height: 48,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    wrap: {
+      marginBottom: spacing.sm,
+    },
+    card: {
+      padding: spacing.sm,
+      marginBottom: spacing.xs,
+    },
+    exerciseName: {
+      fontSize: 17,
+      fontFamily: fontFamily.semiBold,
+      color: colors.textPrimary,
+      marginBottom: spacing.xs,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      paddingBottom: 6,
+    },
+    headerCell: {
+      fontSize: 12,
+      fontFamily: fontFamily.medium,
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: radius.sm,
+      paddingVertical: 6,
+    },
+    rowAlt: {
+      backgroundColor: colors.background,
+    },
+    rowText: {
+      fontSize: 15,
+      fontFamily: fontFamily.medium,
+      color: colors.textPrimary,
+      textAlign: 'center',
+    },
+    colSerie: { flex: 0.8 },
+    colKg: { flex: 1 },
+    colReps: { flex: 1.4 },
+    colCheck: { flex: 0.8, alignItems: 'center', justifyContent: 'center' },
+    cellInput: {
+      fontSize: 15,
+      fontFamily: fontFamily.medium,
+      color: colors.textPrimary,
+      paddingVertical: 4,
+    },
+    checkButton: {
+      padding: 2,
+    },
+    addSetButton: {
+      height: 48,
+    },
+  });
+}

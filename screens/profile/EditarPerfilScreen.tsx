@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -20,7 +20,8 @@ import ScreenHeader from '../../components/ui/ScreenHeader';
 import SegmentedControl from '../../components/ui/SegmentedControl';
 import TextField from '../../components/ui/TextField';
 import { useAuth } from '../../context/AuthContext';
-import { colors, fontFamily, radius, spacing } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { fontFamily, radius, spacing, type ThemeColors } from '../../theme';
 import type { Gender, Goal } from '../../types/database';
 import type { PerfilStackParamList } from '../../navigation/types';
 
@@ -37,6 +38,8 @@ const TRAINING_DAYS_OPTIONS = [3, 4, 5, 6].map((n) => ({ label: String(n), value
 // Edición de perfil (Fase 4): mismos campos e inputs que Metabolismo Basal,
 // pero precargados con los datos actuales y sumando el nombre.
 export default function EditarPerfilScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { profile, updateProfile } = useAuth();
 
   const [fullName, setFullName] = useState(profile?.full_name ?? '');
@@ -173,73 +176,75 @@ export default function EditarPerfilScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  flex: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  rowInput: {
-    flex: 1,
-  },
-  label: {
-    fontSize: 13,
-    fontFamily: fontFamily.medium,
-    color: colors.textSecondary,
-    marginBottom: 8,
-  },
-  genderCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
-  },
-  genderText: {
-    fontSize: 15,
-    fontFamily: fontFamily.medium,
-    color: colors.textPrimary,
-  },
-  genderTextInactive: {
-    color: colors.textTertiary,
-  },
-  goalList: {
-    gap: spacing.xs,
-  },
-  goalOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    height: 56,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  goalOptionSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryLight,
-  },
-  goalOptionText: {
-    fontSize: 15,
-    fontFamily: fontFamily.medium,
-    color: colors.textPrimary,
-  },
-  goalOptionTextSelected: {
-    color: colors.primaryDark,
-  },
-  saveButton: {
-    marginTop: spacing.lg,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    flex: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.lg,
+    },
+    row: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+    rowInput: {
+      flex: 1,
+    },
+    label: {
+      fontSize: 13,
+      fontFamily: fontFamily.medium,
+      color: colors.textSecondary,
+      marginBottom: 8,
+    },
+    genderCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.sm,
+    },
+    genderText: {
+      fontSize: 15,
+      fontFamily: fontFamily.medium,
+      color: colors.textPrimary,
+    },
+    genderTextInactive: {
+      color: colors.textTertiary,
+    },
+    goalList: {
+      gap: spacing.xs,
+    },
+    goalOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      height: 56,
+      paddingHorizontal: spacing.sm,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    goalOptionSelected: {
+      borderColor: colors.primary,
+      backgroundColor: colors.primaryLight,
+    },
+    goalOptionText: {
+      fontSize: 15,
+      fontFamily: fontFamily.medium,
+      color: colors.textPrimary,
+    },
+    goalOptionTextSelected: {
+      color: colors.primaryDark,
+    },
+    saveButton: {
+      marginTop: spacing.lg,
+    },
+  });
+}
