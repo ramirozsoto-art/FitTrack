@@ -1,4 +1,6 @@
+import { useEffect, useRef } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -62,11 +64,7 @@ export default function ExerciseSetTable({
                 <ActivityIndicator size="small" color={colors.primary} />
               ) : (
                 <Pressable onPress={() => onToggleSet(index)} hitSlop={8} style={styles.checkButton}>
-                  <Ionicons
-                    name={set.completed ? 'checkmark-circle' : 'ellipse-outline'}
-                    size={26}
-                    color={set.completed ? colors.primary : colors.textTertiary}
-                  />
+                  <SetCheckIcon completed={set.completed} />
                 </Pressable>
               )}
             </View>
@@ -76,6 +74,37 @@ export default function ExerciseSetTable({
 
       <Button title="+ Agregar Serie" onPress={onAddSet} style={styles.addSetButton} />
     </View>
+  );
+}
+
+const AnimatedIonicons = Animated.createAnimatedComponent(Ionicons);
+
+// Ícono de check con un pequeño rebote de escala al pasar a completado.
+function SetCheckIcon({ completed }: { completed: boolean }) {
+  const scale = useSharedValue(1);
+  const wasCompleted = useRef(completed);
+
+  useEffect(() => {
+    if (completed && !wasCompleted.current) {
+      scale.value = withSequence(
+        withTiming(1.3, { duration: 120 }),
+        withTiming(1, { duration: 120 })
+      );
+    }
+    wasCompleted.current = completed;
+  }, [completed, scale]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <AnimatedIonicons
+      name={completed ? 'checkmark-circle' : 'ellipse-outline'}
+      size={26}
+      color={completed ? colors.primary : colors.textTertiary}
+      style={animatedStyle}
+    />
   );
 }
 

@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -42,7 +43,9 @@ export default function PostWorkoutScreen({ navigation, route }: Props) {
   );
 
   const handleViewStats = () => {
-    Alert.alert('Próximamente', 'Las estadísticas detalladas llegan en la próxima fase.');
+    navigation.getParent<NavigationProp<MainTabParamList>>()?.navigate('Perfil', {
+      screen: 'Estadisticas',
+    });
   };
 
   const handleContinue = () => {
@@ -53,15 +56,25 @@ export default function PostWorkoutScreen({ navigation, route }: Props) {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Card style={styles.doneCard}>
-          <Text style={styles.doneText}>BIEN HECHO!</Text>
-        </Card>
+        <Animated.View entering={FadeInDown.duration(400)}>
+          <Card style={styles.doneCard}>
+            <Text style={styles.doneText}>BIEN HECHO!</Text>
+          </Card>
+        </Animated.View>
 
         <View style={styles.statsGrid}>
-          <StatTile icon="time-outline" value={formatClock(durationSeconds)} label="Duración" />
-          <StatTile icon="barbell-outline" value={`${Math.round(totalVolumeKg)} kg`} label="Volumen total" />
-          <StatTile icon="list-outline" value={String(exerciseCount)} label="Ejercicios" />
-          <StatTile icon="checkmark-done-outline" value={String(completedSetCount)} label="Series" />
+          <Animated.View entering={FadeInDown.duration(400).delay(100)} style={styles.statTileWrap}>
+            <StatTile icon="time-outline" value={formatClock(durationSeconds)} label="Duración" />
+          </Animated.View>
+          <Animated.View entering={FadeInDown.duration(400).delay(180)} style={styles.statTileWrap}>
+            <StatTile icon="barbell-outline" value={`${Math.round(totalVolumeKg)} kg`} label="Volumen total" />
+          </Animated.View>
+          <Animated.View entering={FadeInDown.duration(400).delay(260)} style={styles.statTileWrap}>
+            <StatTile icon="list-outline" value={String(exerciseCount)} label="Ejercicios" />
+          </Animated.View>
+          <Animated.View entering={FadeInDown.duration(400).delay(340)} style={styles.statTileWrap}>
+            <StatTile icon="checkmark-done-outline" value={String(completedSetCount)} label="Series" />
+          </Animated.View>
         </View>
 
         <Text style={styles.streakLabel}>Racha semanal:</Text>
@@ -139,9 +152,11 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     marginBottom: spacing.lg,
   },
-  statTile: {
+  statTileWrap: {
     flexBasis: '47%',
     flexGrow: 1,
+  },
+  statTile: {
     alignItems: 'center',
     paddingVertical: spacing.sm,
   },
