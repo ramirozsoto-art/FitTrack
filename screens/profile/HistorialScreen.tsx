@@ -10,7 +10,7 @@ import Skeleton from '../../components/ui/Skeleton';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { formatClock, formatShortDate } from '../../lib/date';
-import { fetchCompletedWorkouts } from '../../lib/history';
+import { computeHistorySummary, fetchCompletedWorkouts } from '../../lib/history';
 import { fontFamily, radius, spacing, type ThemeColors } from '../../theme';
 import type { WorkoutSummary } from '../../lib/history';
 import type { PerfilStackParamList } from '../../navigation/types';
@@ -50,11 +50,24 @@ export default function HistorialScreen({ navigation }: Props) {
     setRefreshing(false);
   };
 
+  const summary = useMemo(() => computeHistorySummary(workouts), [workouts]);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <ScreenHeader title="Historial" onBack={() => navigation.goBack()} />
       {loading ? (
         <View style={styles.listContent}>
+          <Card style={styles.summaryCard}>
+            <View style={styles.summaryItem}>
+              <Skeleton width={32} height={24} style={{ marginBottom: 6 }} />
+              <Skeleton width="70%" height={12} />
+            </View>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryItem}>
+              <Skeleton width={32} height={24} style={{ marginBottom: 6 }} />
+              <Skeleton width="70%" height={12} />
+            </View>
+          </Card>
           {Array.from({ length: 8 }).map((_, index) => (
             <Card key={index} style={styles.workoutCard}>
               <Skeleton width={40} height={40} radius={radius.md} />
@@ -72,6 +85,21 @@ export default function HistorialScreen({ navigation }: Props) {
           contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
+          }
+          ListHeaderComponent={
+            workouts.length > 0 ? (
+              <Card style={styles.summaryCard}>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>{summary.totalWorkouts}</Text>
+                  <Text style={styles.summaryLabel}>Entrenamientos totales</Text>
+                </View>
+                <View style={styles.summaryDivider} />
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>{summary.avgWorkoutsPerWeek}</Text>
+                  <Text style={styles.summaryLabel}>Promedio por semana</Text>
+                </View>
+              </Card>
+            ) : null
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
@@ -125,6 +153,32 @@ function createStyles(colors: ThemeColors) {
       paddingTop: spacing.sm,
       paddingBottom: spacing.lg,
       gap: spacing.xs,
+    },
+    summaryCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.xs,
+    },
+    summaryItem: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    summaryValue: {
+      fontSize: 22,
+      fontFamily: fontFamily.bold,
+      color: colors.textPrimary,
+    },
+    summaryLabel: {
+      fontSize: 12,
+      fontFamily: fontFamily.regular,
+      color: colors.textSecondary,
+      marginTop: 2,
+      textAlign: 'center',
+    },
+    summaryDivider: {
+      width: StyleSheet.hairlineWidth,
+      alignSelf: 'stretch',
+      backgroundColor: colors.border,
     },
     workoutCard: {
       flexDirection: 'row',

@@ -30,6 +30,27 @@ export async function fetchCompletedWorkouts(userId: string): Promise<WorkoutSum
   });
 }
 
+export interface HistorySummary {
+  totalWorkouts: number;
+  avgWorkoutsPerWeek: number;
+}
+
+// Resumen chico arriba de la lista de Historial: total registrado y promedio
+// por semana desde el primer entrenamiento hasta hoy (no solo entre el
+// primero y el último, para que la racha "se enfríe" si el usuario dejó de
+// entrenar hace tiempo).
+export function computeHistorySummary(workouts: WorkoutSummary[]): HistorySummary {
+  if (workouts.length === 0) return { totalWorkouts: 0, avgWorkoutsPerWeek: 0 };
+
+  const earliest = Math.min(...workouts.map((w) => new Date(w.started_at).getTime()));
+  const weekSpan = Math.max(1, Math.ceil((Date.now() - earliest) / (7 * 24 * 60 * 60 * 1000)));
+
+  return {
+    totalWorkouts: workouts.length,
+    avgWorkoutsPerWeek: Math.round((workouts.length / weekSpan) * 10) / 10,
+  };
+}
+
 export interface WorkoutExerciseGroup {
   exercise: Exercise;
   sets: WorkoutSet[];
