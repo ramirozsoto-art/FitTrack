@@ -63,6 +63,65 @@ function mondayOf(date: Date): Date {
   return monday;
 }
 
+interface RawVolumeSet {
+  weight: number | null;
+  reps: number | null;
+}
+
+interface RawVolumeWorkout {
+  started_at: string;
+  workout_sets: RawVolumeSet[];
+}
+
+export interface WeeklyVolumeTrend {
+  currentWeekVolumeKg: number;
+  previousWeekVolumeKg: number;
+  hasPreviousWeekData: boolean;
+}
+
+// Volumen total (peso x reps) de la semana actual vs. la semana anterior,
+// usado en la tarjeta de actividad del Dashboard. weekStart es el lunes
+// 00:00 de la semana actual (mismo criterio que lib/date.ts#getWeekStart).
+export async function fetchWeeklyVolumeTrend(userId: string, weekStart: Date): Promise<WeeklyVolumeTrend> {
+  const previousWeekStart = new Date(weekStart);
+  previousWeekStart.setDate(previousWeekStart.getDate() - 7);
+
+  const { data, error } = await supabase
+    .from('workouts')
+    .select('started_at, workout_sets(weight, reps)')
+    .eq('user_id', userId)
+    .eq('status', 'completed')
+    .gte('started_at', previousWeekStart.toISOString())
+    .order('started_at', { ascending: true });
+
+  if (error) throw error;
+
+  let currentWeekVolumeKg = 0;
+  let previousWeekVolumeKg = 0;
+  let hasPreviousWeekData = false;
+
+  ((data as unknown as RawVolumeWorkout[]) ?? []).forEach((workout) => {
+    const startedAt = new Date(workout.started_at);
+    const volume = (workout.workout_sets ?? []).reduce(
+      (sum, set) => sum + (set.weight ?? 0) * (set.reps ?? 0),
+      0
+    );
+
+    if (startedAt >= weekStart) {
+      currentWeekVolumeKg += volume;
+    } else {
+      previousWeekVolumeKg += volume;
+      hasPreviousWeekData = true;
+    }
+  });
+
+  return {
+    currentWeekVolumeKg: Math.round(currentWeekVolumeKg),
+    previousWeekVolumeKg: Math.round(previousWeekVolumeKg),
+    hasPreviousWeekData,
+  };
+}
+
 interface Aggregated<T> {
   label: string;
   sortKey: number;

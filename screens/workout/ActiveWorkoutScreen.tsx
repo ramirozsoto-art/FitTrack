@@ -22,7 +22,14 @@ import RestTimerBanner from '../../components/workout/RestTimerBanner';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { fetchRoutineExercises } from '../../lib/routines';
-import { cancelWorkout, finishWorkout, insertWorkoutSet, deleteWorkoutSet, startWorkout } from '../../lib/workouts';
+import {
+  cancelWorkout,
+  finishWorkout,
+  insertWorkoutSet,
+  deleteWorkoutSet,
+  deleteWorkoutSets,
+  startWorkout,
+} from '../../lib/workouts';
 import { spacing, type ThemeColors } from '../../theme';
 import type { Exercise, Workout } from '../../types/database';
 import type { ActiveExercise, ActiveSetRow } from '../../types/workoutSession';
@@ -255,6 +262,52 @@ export default function ActiveWorkoutScreen({ navigation, route }: Props) {
     ]);
   };
 
+  // Elimina una serie puntual (swipe-to-delete). Si ya estaba guardada en
+  // Supabase, la borra ahí primero; si falla, no se toca el estado local y
+  // se le avisa a la fila para que vuelva a su posición cerrada.
+  const handleDeleteSet = async (exerciseIndex: number, setIndex: number): Promise<boolean> => {
+    const set = exercises[exerciseIndex]?.sets[setIndex];
+    if (!set) return false;
+
+    if (set.id) {
+      try {
+        await deleteWorkoutSet(set.id);
+      } catch (err) {
+        Alert.alert('No se pudo eliminar la serie', err instanceof Error ? err.message : 'Intentá de nuevo.');
+        return false;
+      }
+    }
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    setExercises((prev) => {
+      const next = [...prev];
+      const sets = next[exerciseIndex].sets
+        .filter((_, i) => i !== setIndex)
+        .map((s, i) => ({ ...s, setNumber: i + 1 }));
+      next[exerciseIndex] = { ...next[exerciseIndex], sets };
+      return next;
+    });
+    return true;
+  };
+
+  // Elimina un ejercicio completo (confirmado desde el menú "•••"), incluidas
+  // todas sus series ya guardadas en Supabase.
+  const handleDeleteExercise = async (exerciseIndex: number) => {
+    const ex = exercises[exerciseIndex];
+    if (!ex) return;
+
+    const savedSetIds = ex.sets.filter((s) => s.id).map((s) => s.id as string);
+    try {
+      await deleteWorkoutSets(savedSetIds);
+    } catch (err) {
+      Alert.alert('No se pudo eliminar el ejercicio', err instanceof Error ? err.message : 'Intentá de nuevo.');
+      return;
+    }
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    setExercises((prev) => prev.filter((_, i) => i !== exerciseIndex));
+  };
+
   const handleCancel = () => {
     Alert.alert(
       'Cancelar entrenamiento',
@@ -356,6 +409,8 @@ export default function ActiveWorkoutScreen({ navigation, route }: Props) {
                 onChangeReps={(setIndex, value) => updateSet(exerciseIndex, setIndex, { reps: value })}
                 onToggleSet={(setIndex) => handleToggleSet(exerciseIndex, setIndex)}
                 onAddSet={() => handleAddSet(exerciseIndex)}
+                onDeleteSet={(setIndex) => handleDeleteSet(exerciseIndex, setIndex)}
+                onDeleteExercise={() => handleDeleteExercise(exerciseIndex)}
               />
             ))
           )}

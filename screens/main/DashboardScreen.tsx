@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Dimensions, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from '@react-navigation/native';
@@ -12,14 +11,14 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { dayIndexFromISODate, getWeekStart, todayIndex, WEEKDAY_LABELS } from '../../lib/date';
 import { fetchUserRoutines, fetchWeeklyWorkouts } from '../../lib/routines';
+import { fetchWeeklyVolumeTrend, type WeeklyVolumeTrend } from '../../lib/stats';
 import { fontFamily, radius, spacing, type ThemeColors } from '../../theme';
 import type { MainTabScreenProps } from '../../navigation/types';
 import type { Routine, Workout } from '../../types/database';
 
 const DAYS = WEEKDAY_LABELS;
 const TODAY_INDEX = todayIndex();
-
-const screenWidth = Dimensions.get('window').width;
+const DEFAULT_WEEKLY_GOAL = 4;
 
 type Props = MainTabScreenProps<'Inicio'>;
 
@@ -33,18 +32,22 @@ export default function DashboardScreen({ navigation }: Props) {
 
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [volumeTrend, setVolumeTrend] = useState<WeeklyVolumeTrend | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadDashboard = useCallback(async () => {
     if (!session?.user) return;
     try {
-      const [routinesData, workoutsData] = await Promise.all([
+      const weekStart = getWeekStart();
+      const [routinesData, workoutsData, volumeTrendData] = await Promise.all([
         fetchUserRoutines(session.user.id),
-        fetchWeeklyWorkouts(session.user.id, getWeekStart()),
+        fetchWeeklyWorkouts(session.user.id, weekStart),
+        fetchWeeklyVolumeTrend(session.user.id, weekStart),
       ]);
       setRoutines(routinesData);
       setWorkouts(workoutsData);
+      setVolumeTrend(volumeTrendData);
     } catch {
       // Si falla, se mantienen los últimos datos cargados; se puede reintentar con pull-to-refresh.
     } finally {
@@ -79,18 +82,22 @@ export default function DashboardScreen({ navigation }: Props) {
     return new Set(workouts.map((w) => dayIndexFromISODate(w.started_at)));
   }, [workouts]);
 
-  const dailyCounts = useMemo(() => {
-    const counts = [0, 0, 0, 0, 0, 0, 0];
-    workouts.forEach((w) => {
-      counts[dayIndexFromISODate(w.started_at)] += 1;
-    });
-    return counts;
-  }, [workouts]);
+  const weeklyGoal = profile?.training_days || DEFAULT_WEEKLY_GOAL;
+  const workoutsThisWeek = workouts.length;
+  const weeklyProgressPercent = Math.min(100, Math.round((workoutsThisWeek / weeklyGoal) * 100));
 
-  const activityData = useMemo(
-    () => ({ labels: DAYS, datasets: [{ data: dailyCounts }] }),
-    [dailyCounts]
-  );
+  const volumeDeltaKg = volumeTrend
+    ? volumeTrend.currentWeekVolumeKg - volumeTrend.previousWeekVolumeKg
+    : 0;
+  const volumeTrendUp = volumeDeltaKg >= 0;
+  const volumeDeltaPercent =
+    volumeTrend && volumeTrend.previousWeekVolumeKg > 0
+      ? Math.round((volumeDeltaKg / volumeTrend.previousWeekVolumeKg) * 100)
+      : null;
+  const volumeTrendLabel =
+    volumeDeltaPercent !== null
+      ? `${volumeTrendUp ? '+' : ''}${volumeDeltaPercent}%`
+      : `${volumeTrendUp ? '+' : ''}${volumeDeltaKg} kg`;
 
   if (loading) {
     return (
@@ -150,48 +157,55 @@ export default function DashboardScreen({ navigation }: Props) {
         </Card>
 
         <Text style={styles.sectionTitle}>Actividad</Text>
-        {workouts.length > 0 ? (
-          <Card style={styles.chartCard}>
-            <LineChart
-              data={activityData}
-              width={screenWidth - spacing.md * 2 - spacing.sm * 2}
-              height={180}
-              withInnerLines={false}
-              withOuterLines={false}
-              chartConfig={{
-                backgroundGradientFrom: colors.surface,
-                backgroundGradientTo: colors.surface,
-                decimalPlaces: 0,
-                color: (opacity = 1) => hexToRgba(colors.primary, opacity),
-                labelColor: (opacity = 1) => hexToRgba(colors.textSecondary, opacity),
-                propsForDots: { r: '4', strokeWidth: '2', stroke: colors.primary },
-              }}
-              bezier
-              style={styles.chart}
-            />
-          </Card>
-        ) : (
-          <Card style={styles.chartEmptyCard}>
-            <View style={styles.emptyIconWrap}>
-              <Ionicons name="stats-chart-outline" size={24} color={colors.primary} />
+        <Card style={styles.activityCard}>
+          <View style={styles.activityBlock}>
+            <View style={styles.activityBlockHeader}>
+              <Text style={styles.activityLabel}>Progreso semanal</Text>
+              <Text style={styles.activityValue}>
+                {workoutsThisWeek} de {weeklyGoal} entrenamientos
+              </Text>
             </View>
-            <Text style={styles.chartEmptyText}>Todavía no registraste entrenamientos esta semana.</Text>
-          </Card>
-        )}
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${weeklyProgressPercent}%` }]} />
+            </View>
+          </View>
+
+          <View style={styles.activityDivider} />
+
+          <View style={styles.activityBlock}>
+            <View style={styles.activityBlockHeader}>
+              <Text style={styles.activityLabel}>Volumen esta semana</Text>
+              <View style={styles.trendRow}>
+                <Text style={styles.activityValue}>{volumeTrend?.currentWeekVolumeKg ?? 0} kg</Text>
+                {volumeTrend?.hasPreviousWeekData && (
+                  <View style={styles.trendBadge}>
+                    <Ionicons
+                      name={volumeTrendUp ? 'arrow-up' : 'arrow-down'}
+                      size={12}
+                      color={volumeTrendUp ? colors.success : colors.error}
+                    />
+                    <Text
+                      style={[
+                        styles.trendText,
+                        { color: volumeTrendUp ? colors.success : colors.error },
+                      ]}
+                    >
+                      {volumeTrendLabel}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+            {volumeTrend && !volumeTrend.hasPreviousWeekData && (
+              <Text style={styles.activityHint}>
+                Todavía no hay datos de la semana pasada para comparar.
+              </Text>
+            )}
+          </View>
+        </Card>
       </ScrollView>
     </SafeAreaView>
   );
-}
-
-// Convierte un color hex (#RRGGBB) a rgba(...) para los callbacks de color de
-// react-native-chart-kit, que necesitan variar la opacidad de un color que
-// ahora depende del theme activo (antes era un rgba(234, 88, 12, ...) fijo).
-function hexToRgba(hex: string, opacity: number): string {
-  const match = hex.replace('#', '');
-  const r = parseInt(match.substring(0, 2), 16);
-  const g = parseInt(match.substring(2, 4), 16);
-  const b = parseInt(match.substring(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 }
 
 // Silueta de carga del Dashboard: saludo, tarjeta "rutina de hoy", semana y gráfico.
@@ -219,8 +233,16 @@ function DashboardSkeleton({ styles }: { styles: ReturnType<typeof createStyles>
       </Card>
 
       <Skeleton width={100} height={22} style={{ marginBottom: spacing.xs }} />
-      <Card style={styles.chartCard}>
-        <Skeleton width={screenWidth - spacing.md * 2 - spacing.sm * 2} height={180} radius={radius.md} />
+      <Card style={styles.activityCard}>
+        <View style={{ gap: 6 }}>
+          <Skeleton width="60%" height={13} />
+          <Skeleton height={8} radius={radius.full} />
+        </View>
+        <View style={styles.activityDivider} />
+        <View style={{ gap: 6 }}>
+          <Skeleton width="50%" height={13} />
+          <Skeleton width="40%" height={19} />
+        </View>
       </Card>
     </View>
   );
@@ -313,32 +335,61 @@ function createStyles(colors: ThemeColors) {
       color: colors.primary,
       fontFamily: fontFamily.semiBold,
     },
-    chartCard: {
+    activityCard: {
+      gap: spacing.sm,
+    },
+    activityBlock: {
+      gap: spacing.xs,
+    },
+    activityBlockHeader: {
+      flexDirection: 'row',
       alignItems: 'center',
-      paddingRight: 0,
+      justifyContent: 'space-between',
+      gap: spacing.xs,
     },
-    chart: {
-      borderRadius: radius.md,
-    },
-    chartEmptyCard: {
-      alignItems: 'center',
-      paddingVertical: spacing.lg,
-    },
-    emptyIconWrap: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: colors.primaryLight,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: spacing.xs,
-    },
-    chartEmptyText: {
-      fontSize: 14,
-      fontFamily: fontFamily.regular,
+    activityLabel: {
+      fontSize: 13,
+      fontFamily: fontFamily.medium,
       color: colors.textSecondary,
-      textAlign: 'center',
-      paddingHorizontal: spacing.md,
+    },
+    activityValue: {
+      fontSize: 15,
+      fontFamily: fontFamily.semiBold,
+      color: colors.textPrimary,
+    },
+    activityDivider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.border,
+    },
+    progressTrack: {
+      height: 8,
+      borderRadius: radius.full,
+      backgroundColor: colors.background,
+      overflow: 'hidden',
+    },
+    progressFill: {
+      height: '100%',
+      borderRadius: radius.full,
+      backgroundColor: colors.primary,
+    },
+    trendRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    trendBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+    },
+    trendText: {
+      fontSize: 13,
+      fontFamily: fontFamily.semiBold,
+    },
+    activityHint: {
+      fontSize: 12,
+      fontFamily: fontFamily.regular,
+      color: colors.textTertiary,
     },
   });
 }

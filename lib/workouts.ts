@@ -47,9 +47,17 @@ export async function insertWorkoutSet(params: InsertSetParams): Promise<Workout
   return data as WorkoutSet;
 }
 
-// Se usa al destildar una serie ya guardada.
+// Se usa al destildar una serie ya guardada, o al eliminarla con swipe.
 export async function deleteWorkoutSet(setId: string): Promise<void> {
   const { error } = await supabase.from('workout_sets').delete().eq('id', setId);
+  if (error) throw error;
+}
+
+// Se usa al eliminar un ejercicio completo del entrenamiento activo: borra
+// de una sola vez todas sus series ya guardadas.
+export async function deleteWorkoutSets(setIds: string[]): Promise<void> {
+  if (setIds.length === 0) return;
+  const { error } = await supabase.from('workout_sets').delete().in('id', setIds);
   if (error) throw error;
 }
 

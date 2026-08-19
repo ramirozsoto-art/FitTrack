@@ -101,6 +101,7 @@ const ExercisePickerSheet = forwardRef<ExercisePickerSheetRef, ExercisePickerShe
         ref={sheetRef}
         index={-1}
         snapPoints={SNAP_POINTS}
+        enableDynamicSizing={false}
         enablePanDownToClose
         backdropComponent={renderBackdrop}
         backgroundStyle={styles.sheetBackground}
